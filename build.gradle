@@ -1,0 +1,55 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:7.0.0'
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
+
+ext {
+    minSdkVersion = 16
+    compileSdkVersion = 31
+    targetSdkVersion = 31
+    buildToolsVersion = "31.0.0"
+    javaVersion = JavaVersion.VERSION_1_7
+    ndkVersion = "22.1.7171670"
+    cmakeVersion = "3.18.1"
+    abiFilters = "armeabi-v7a,arm64-v8a,x86,x86_64"
+    useASAN = false
+    dependencyOnLocalLibrary = true
+
+    POM_GROUP_ID = "com.bytedance"
+    POM_ARTIFACT_ID = "bytehook"
+    POM_VERSION_NAME = "1.0.0"
+
+    POM_NAME = "bytehook"
+    POM_DESCRIPTION = "ByteHook is a PLT hook framework for Android app."
+    POM_URL = "https://github.com/bytedance/bhook"
+    POM_INCEPTION_YEAR = "2020"
+    POM_PACKAGING = "aar"
+
+    POM_SCM_CONNECTION = "https://github.com/bytedance/bhook.git"
+
+    POM_ISSUE_SYSTEM = "github"
+    POM_ISSUE_URL = "https://github.com/bytedance/bhook/issues"
+
+    POM_LICENCE_NAME = "The MIT License"
+    POM_LICENCE_URL = "https://opensource.org/licenses/MIT"
+    POM_LICENCE_DIST = "repo"
+
+    POM_DEVELOPER_ID = "bytedance"
+    POM_DEVELOPER_NAME = "bytedance"
+}

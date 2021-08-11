@@ -1,0 +1,72 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
+    ndkVersion rootProject.ext.ndkVersion
+    defaultConfig {
+        applicationId "com.bytedance.android.bytehook.sample"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName "1.0"
+        ndk {
+            abiFilters rootProject.ext.abiFilters.split(",")
+        }
+        externalNativeBuild {
+            cmake {
+                abiFilters rootProject.ext.abiFilters.split(",")
+                if (rootProject.ext.dependencyOnLocalLibrary) {
+                    arguments "-DDEPENDENCY_ON_LOCAL_LIBRARY=ON"
+                }
+            }
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path "src/main/cpp/CMakeLists.txt"
+            version rootProject.ext.cmakeVersion
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    buildTypes {
+        debug {
+            minifyEnabled false
+        }
+        release {
+            minifyEnabled false
+        }
+    }
+    if (!rootProject.ext.dependencyOnLocalLibrary) {
+        buildFeatures {
+            prefab true
+        }
+    }
+    packagingOptions {
+        pickFirst '**/libbytehook.so'
+    }
+    if (rootProject.ext.useASAN) {
+        packagingOptions {
+            doNotStrip "**/*.so"
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.3.1'
+    implementation 'com.google.android.material:material:1.4.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.0'
+
+    if (rootProject.ext.dependencyOnLocalLibrary) {
+        implementation project(':bytehook')
+    } else {
+        implementation 'com.bytedance:bytehook:1.0.0'
+    }
+}
+
+apply from: rootProject.file('gradle/sanitizer.gradle')

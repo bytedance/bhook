@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical"
+    tools:context=".MainActivity">
+
+    <ScrollView
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView style="@style/Theme.TextView.Top"
+                android:text="adb logcat -b main -s bytehook_tag" />
+
+            <RadioGroup xmlns:android="http://schemas.android.com/apk/res/android"
+                android:checkedButton="@+id/radio_unhook"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="10dp">
+                <RadioButton android:id="@+id/radio_hook_single"
+                    style="@style/Theme.RadioButton"
+                    android:text="hook open( ) in libhookee.so"
+                    android:onClick="onRadioButtonClicked"/>
+                <RadioButton android:id="@+id/radio_hook_partial"
+                    style="@style/Theme.RadioButton"
+                    android:text="hook open( ) in partial ELF"
+                    android:onClick="onRadioButtonClicked"/>
+                <RadioButton android:id="@+id/radio_hook_all"
+                    style="@style/Theme.RadioButton"
+                    android:text="hook open( ) in all ELF"
+                    android:onClick="onRadioButtonClicked"/>
+                <RadioButton android:id="@+id/radio_unhook"
+                    style="@style/Theme.RadioButton"
+                    android:text="unhook open( )"
+                    android:onClick="onRadioButtonClicked"/>
+            </RadioGroup>
+
+            <Button style="@style/Theme.Button"
+                android:id="@+id/test"
+                android:onClick="onTestClick"
+                android:text="call open( ) in libhookee.so" />
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>
