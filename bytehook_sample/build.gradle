@@ -39,7 +39,7 @@ android {
             minifyEnabled false
         }
         release {
-            minifyEnabled false
+            minifyEnabled true
         }
     }
     if (!rootProject.ext.dependencyOnLocalLibrary) {

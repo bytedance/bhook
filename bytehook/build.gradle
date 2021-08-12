@@ -9,6 +9,7 @@ android {
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
+        consumerProguardFiles "consumer-rules.pro"
         externalNativeBuild {
             cmake {
                 abiFilters rootProject.ext.abiFilters.split(",")
