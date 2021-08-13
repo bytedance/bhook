@@ -185,11 +185,19 @@ void bh_elf_manager_iterate(bh_elf_manager_t *self, bh_elf_manager_iterate_cb_t 
             size_t i = 0;
             bh_elf_t *elf;
             RB_FOREACH(elf, bh_elf_tree, &self->elfs)
+            {
                 copy_elfs[i++] = elf;
-            if (i != copy_elfs_cnt)
+                // memory overflow
+                if(i > copy_elfs_cnt)
+                {
+                    assert(0);
+                    goto err;
+                }
+            }
+            // ELF dirty count
+            if(i != copy_elfs_cnt)
             {
                 assert(0);
-
                 goto err;
             }
         }
