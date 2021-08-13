@@ -23,6 +23,7 @@
 
 #include <unistd.h>
 #include <stdint.h>
+#include <assert.h>
 #include <stdlib.h>
 #include <inttypes.h>
 #include <stdbool.h>
@@ -185,6 +186,12 @@ void bh_elf_manager_iterate(bh_elf_manager_t *self, bh_elf_manager_iterate_cb_t 
             bh_elf_t *elf;
             RB_FOREACH(elf, bh_elf_tree, &self->elfs)
                 copy_elfs[i++] = elf;
+            if (i != copy_elfs_cnt)
+            {
+                assert(0);
+
+                goto err;
+            }
         }
     }
     pthread_rwlock_unlock(&self->elfs_lock);
@@ -199,6 +206,12 @@ void bh_elf_manager_iterate(bh_elf_manager_t *self, bh_elf_manager_iterate_cb_t 
         }
         free(copy_elfs);
     }
+
+    return;
+    
+err:
+    pthread_rwlock_unlock(&self->elfs_lock);
+    free(copy_elfs);
 }
 
 bh_elf_t *bh_elf_manager_find_elf(bh_elf_manager_t *self, const char *pathname)
