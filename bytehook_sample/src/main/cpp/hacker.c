@@ -103,7 +103,18 @@ static bool allow_filter(const char *caller_path_name, void *arg)
     if(NULL != strstr(caller_path_name, "libc.so")) return false;
     if(NULL != strstr(caller_path_name, "libbase.so")) return false;
     if(NULL != strstr(caller_path_name, "liblog.so")) return false;
+    if(NULL != strstr(caller_path_name, "libunwindstack.so")) return false;
+    if(NULL != strstr(caller_path_name, "libutils.so")) return false;
     // ......
+
+    return true;
+}
+
+static bool allow_filter_for_hook_all(const char *caller_path_name, void *arg)
+{
+    (void)arg;
+
+    if(NULL != strstr(caller_path_name, "liblog.so")) return false;
 
     return true;
 }
@@ -142,9 +153,25 @@ static int hacker_hook(JNIEnv *env, jobject thiz, jint type)
     }
     else if(2 == type)
     {
-        open_stub = bytehook_hook_all(NULL, "open", open_proxy, open_hooked_callback, NULL);
-        open_real_stub = bytehook_hook_all(NULL, "__open_real", open_real_proxy, open_real_hooked_callback, NULL);
-        open2_stub = bytehook_hook_all(NULL, "__open_2", open2_proxy, open2_hooked_callback, NULL);
+        // Here we are not really using bytehook_hook_all().
+        //
+        // In the sample app, we use logcat to output debugging information, so we need to
+        // filter out liblog.so when hook all.
+        //
+        // Because in some Android versions, liblog.so will call open() when executing
+        // __android_log_print(). This is not a problem in itself, but it will indirectly
+        // cause the InitLogging() function of libartbase.so to re-enter and cause a deadlock,
+        // eventually leading to ANR.
+        //
+        // In this sample app, don't do this:
+        //
+        // open_stub = bytehook_hook_all(NULL, "open", open_proxy, open_hooked_callback, NULL);
+        // open_real_stub = bytehook_hook_all(NULL, "__open_real", open_real_proxy, open_real_hooked_callback, NULL);
+        // open2_stub = bytehook_hook_all(NULL, "__open_2", open2_proxy, open2_hooked_callback, NULL);
+
+        open_stub = bytehook_hook_partial(allow_filter_for_hook_all, NULL, NULL, "open", open_proxy, open_hooked_callback, NULL);
+        open_real_stub = bytehook_hook_partial(allow_filter_for_hook_all, NULL, NULL, "__open_real", open_real_proxy, open_real_hooked_callback, NULL);
+        open2_stub = bytehook_hook_partial(allow_filter_for_hook_all, NULL, NULL, "__open_2", open2_proxy, open2_hooked_callback, NULL);
     }
 
     return 0;
