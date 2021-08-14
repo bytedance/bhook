@@ -5,9 +5,11 @@
 ![](https://img.shields.io/badge/Android-4.1%20--%2012-blue.svg?style=flat)
 ![](https://img.shields.io/badge/arch-armeabi--v7a%20%7C%20arm64--v8a%20%7C%20x86%20%7C%20x86__64-blue.svg?style=flat)
 
+[README 中文版](README.zh-CN.md)
+
 bhook is a PLT hook framework for Android app.
 
-[README 中文版](README.zh-CN.md)
+Most of ByteDance's Android apps use bhook as the PLT hook solution online. We use bhook to monitor app's memory, FD, lock, binder, I/O, logcat, thread, graphics, ART, dynamic link, etc. bhook is also used by us for system optimization, security defense and more scenarios.
 
 
 ## Features
