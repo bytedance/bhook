@@ -7,7 +7,7 @@
 
 [README English Version](README.md)
 
-bhook 是一个针对 Android app 的 PLT hook 框架。
+bhook(aka ByteHook) 是一个针对 Android app 的 PLT hook 框架。
 
 字节跳动的大多数 Android app 在线上使用了 bhook 作为 PLT hook 方案。
 

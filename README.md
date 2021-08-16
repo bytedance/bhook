@@ -7,7 +7,7 @@
 
 [README 中文版](README.zh-CN.md)
 
-bhook is a PLT hook framework for Android app.
+bhook(aka ByteHook) is a PLT hook framework for Android app.
 
 Most of ByteDance's Android apps use bhook as the PLT hook solution online.
 
