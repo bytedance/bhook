@@ -9,7 +9,7 @@
 
 bhook 是一个针对 Android app 的 PLT hook 框架。
 
-字节跳动的大多数 Android app 都在线上使用了 bhook 作为 PLT hook 方案。我们使用 bhook 监测 app 的内存，FD，锁，binder，I/O，logcat，线程，图形，ART，动态链接等。bhook 也被我们用于系统优化，安全防御等更多的场景。
+字节跳动的大多数 Android app 在线上使用了 bhook 作为 PLT hook 方案。
 
 
 ## 特征

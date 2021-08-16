@@ -9,7 +9,7 @@
 
 bhook is a PLT hook framework for Android app.
 
-Most of ByteDance's Android apps use bhook as the PLT hook solution online. We use bhook to monitor app's memory, FD, lock, binder, I/O, logcat, thread, graphics, ART, dynamic link, etc. bhook is also used by us for system optimization, security defense and more scenarios.
+Most of ByteDance's Android apps use bhook as the PLT hook solution online.
 
 
 ## Features
