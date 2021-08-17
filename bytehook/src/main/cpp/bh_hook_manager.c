@@ -471,11 +471,15 @@ static void bh_hook_manager_hook_impl(bh_hook_manager_t *self, bh_task_t *task, 
 static void bh_hook_manager_cfi_slowpath(uint64_t CallSiteTypeId, void* Ptr)
 {
     (void)CallSiteTypeId, (void)Ptr;
+
+    BYTEHOOK_POP_STACK();
 }
 
 static void bh_hook_manager_cfi_slowpath_diag(uint64_t CallSiteTypeId, void* Ptr, void* DiagData)
 {
     (void)CallSiteTypeId, (void)Ptr, (void)DiagData;
+
+    BYTEHOOK_POP_STACK();
 }
 
 static void bh_hook_manager_cfi_hooked(bytehook_stub_t task_stub, int status_code, const char *caller_path_name, const char *sym_name, void *new_func, void *prev_func, void *arg)
