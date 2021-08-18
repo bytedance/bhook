@@ -1,7 +1,7 @@
 # bhook
 
 ![](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)
-![](https://img.shields.io/badge/release-1.0.0-red.svg?style=flat)
+![](https://img.shields.io/badge/release-1.0.1-red.svg?style=flat)
 ![](https://img.shields.io/badge/Android-4.1%20--%2012-blue.svg?style=flat)
 ![](https://img.shields.io/badge/arch-armeabi--v7a%20%7C%20arm64--v8a%20%7C%20x86%20%7C%20x86__64-blue.svg?style=flat)
 
@@ -46,7 +46,7 @@ android {
 }
 
 dependencies {
-    implementation 'com.bytedance:bytehook:1.0.0'
+    implementation 'com.bytedance:bytehook:1.0.1'
 }
 ```
 
