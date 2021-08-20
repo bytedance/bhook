@@ -141,7 +141,7 @@ static void bh_dl_monitor_call_cb_post(const char *filename, int result)
 static void bh_dl_monitor_proxy_dlopen_hooked(bytehook_stub_t task_stub, int status_code, const char *caller_path_name, const char *sym_name, void *new_func, void *prev_func, void *arg)
 {
     (void)task_stub, (void)caller_path_name, (void)sym_name, (void)new_func, (void)arg;
-    if(BYTEHOOK_STATUS_CODE_OK == status_code && (void *)bh_dl_monitor_orig_dlopen != prev_func)
+    if(BYTEHOOK_STATUS_CODE_ORIG_ADDR == status_code && (void *)bh_dl_monitor_orig_dlopen != prev_func)
         bh_dl_monitor_orig_dlopen = (bh_dl_monitor_dlopen_t)prev_func;
 }
 
@@ -149,7 +149,7 @@ static void bh_dl_monitor_proxy_dlopen_hooked(bytehook_stub_t task_stub, int sta
 static void bh_dl_monitor_proxy_android_dlopen_ext_hooked(bytehook_stub_t task_stub, int status_code, const char *caller_path_name, const char *sym_name, void *new_func, void *prev_func, void *arg)
 {
     (void)task_stub, (void)caller_path_name, (void)sym_name, (void)new_func, (void)arg;
-    if(BYTEHOOK_STATUS_CODE_OK == status_code && (void *)bh_dl_monitor_orig_android_dlopen_ext != prev_func)
+    if(BYTEHOOK_STATUS_CODE_ORIG_ADDR == status_code && (void *)bh_dl_monitor_orig_android_dlopen_ext != prev_func)
         bh_dl_monitor_orig_android_dlopen_ext = (bh_dl_monitor_android_dlopen_ext_t)prev_func;
 }
 
@@ -157,7 +157,7 @@ static void bh_dl_monitor_proxy_android_dlopen_ext_hooked(bytehook_stub_t task_s
 static void bh_dl_monitor_proxy_loader_dlopen_hooked(bytehook_stub_t task_stub, int status_code, const char *caller_path_name, const char *sym_name, void *new_func, void *prev_func, void *arg)
 {
     (void)task_stub, (void)caller_path_name, (void)sym_name, (void)new_func, (void)arg;
-    if(BYTEHOOK_STATUS_CODE_OK == status_code && (void *)bh_dl_monitor_orig_loader_dlopen != prev_func)
+    if(BYTEHOOK_STATUS_CODE_ORIG_ADDR == status_code && (void *)bh_dl_monitor_orig_loader_dlopen != prev_func)
         bh_dl_monitor_orig_loader_dlopen = (bh_dl_monitor_loader_dlopen_t)prev_func;
 }
 
@@ -165,7 +165,7 @@ static void bh_dl_monitor_proxy_loader_dlopen_hooked(bytehook_stub_t task_stub, 
 static void bh_dl_monitor_proxy_loader_android_dlopen_ext_hooked(bytehook_stub_t task_stub, int status_code, const char *caller_path_name, const char *sym_name, void *new_func, void *prev_func, void *arg)
 {
     (void)task_stub, (void)caller_path_name, (void)sym_name, (void)new_func, (void)arg;
-    if(BYTEHOOK_STATUS_CODE_OK == status_code && (void *)bh_dl_monitor_orig_loader_android_dlopen_ext != prev_func)
+    if(BYTEHOOK_STATUS_CODE_ORIG_ADDR == status_code && (void *)bh_dl_monitor_orig_loader_android_dlopen_ext != prev_func)
         bh_dl_monitor_orig_loader_android_dlopen_ext = (bh_dl_monitor_loader_android_dlopen_ext_t)prev_func;
 }
 
@@ -173,7 +173,7 @@ static void bh_dl_monitor_proxy_loader_android_dlopen_ext_hooked(bytehook_stub_t
 static void bh_dl_monitor_proxy_dlclose_hooked(bytehook_stub_t task_stub, int status_code, const char *caller_path_name, const char *sym_name, void *new_func, void *prev_func, void *arg)
 {
     (void)task_stub, (void)caller_path_name, (void)sym_name, (void)new_func, (void)arg;
-    if(BYTEHOOK_STATUS_CODE_OK == status_code && (void *)bh_dl_monitor_orig_dlclose != prev_func)
+    if(BYTEHOOK_STATUS_CODE_ORIG_ADDR == status_code && (void *)bh_dl_monitor_orig_dlclose != prev_func)
         bh_dl_monitor_orig_dlclose = (bh_dl_monitor_dlclose_t)prev_func;
 }
 
@@ -181,7 +181,7 @@ static void bh_dl_monitor_proxy_dlclose_hooked(bytehook_stub_t task_stub, int st
 static void bh_dl_monitor_proxy_loader_dlclose_hooked(bytehook_stub_t task_stub, int status_code, const char *caller_path_name, const char *sym_name, void *new_func, void *prev_func, void *arg)
 {
     (void)task_stub, (void)caller_path_name, (void)sym_name, (void)new_func, (void)arg;
-    if(BYTEHOOK_STATUS_CODE_OK == status_code && (void *)bh_dl_monitor_orig_loader_dlclose != prev_func)
+    if(BYTEHOOK_STATUS_CODE_ORIG_ADDR == status_code && (void *)bh_dl_monitor_orig_loader_dlclose != prev_func)
         bh_dl_monitor_orig_loader_dlclose = (bh_dl_monitor_loader_dlclose_t)prev_func;
 }
 

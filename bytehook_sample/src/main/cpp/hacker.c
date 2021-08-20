@@ -27,9 +27,16 @@ static fn##_t fn##_prev = NULL; \
 static bytehook_stub_t fn##_stub = NULL; \
 static void fn##_hooked_callback(bytehook_stub_t task_stub, int status_code, const char *caller_path_name, const char *sym_name, void *new_func, void *prev_func, void *arg) \
 { \
-    fn##_prev = (fn##_t)prev_func; \
-    LOG(">>>>> hooked. stub: %" PRIxPTR", status: %d, caller_path_name: %s, sym_name: %s, new_func: %" PRIxPTR", prev_func: %" PRIxPTR", arg: %" PRIxPTR, \
-        (uintptr_t)task_stub, status_code, caller_path_name, sym_name, (uintptr_t)new_func, (uintptr_t)prev_func, (uintptr_t)arg); \
+    if(BYTEHOOK_STATUS_CODE_ORIG_ADDR == status_code) \
+    { \
+        fn##_prev = (fn##_t)prev_func; \
+        LOG(">>>>> save original address: %" PRIxPTR, (uintptr_t)prev_func); \
+    } \
+    else \
+    { \
+        LOG(">>>>> hooked. stub: %" PRIxPTR", status: %d, caller_path_name: %s, sym_name: %s, new_func: %" PRIxPTR", prev_func: %" PRIxPTR", arg: %" PRIxPTR, \
+            (uintptr_t)task_stub, status_code, caller_path_name, sym_name, (uintptr_t)new_func, (uintptr_t)prev_func, (uintptr_t)arg); \
+    } \
 }
 OPEN_DEF(open)
 OPEN_DEF(open_real)
