@@ -1,4 +1,4 @@
-# bhook
+# ByteHook
 
 ![](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)
 ![](https://img.shields.io/badge/release-1.0.1-red.svg?style=flat)
@@ -7,9 +7,9 @@
 
 [README 中文版](README.zh-CN.md)
 
-bhook(aka ByteHook) is a PLT hook framework for Android app.
+ByteHook is a PLT hook framework for Android app.
 
-Most of ByteDance's Android apps use bhook as the PLT hook solution online.
+Most of ByteDance's Android apps use ByteHook as the PLT hook solution online.
 
 
 ## Features
@@ -28,7 +28,7 @@ Most of ByteDance's Android apps use bhook as the PLT hook solution online.
 
 ### 1. Add dependency in build.gradle
 
-bhook is published on [Maven Central](https://search.maven.org/), and uses [Prefab](https://google.github.io/prefab/) package format for [native dependencies](https://developer.android.com/studio/build/native-dependencies), which is supported by [Android Gradle Plugin 4.0+](https://developer.android.com/studio/releases/gradle-plugin?buildsystem=cmake#native-dependencies).
+ByteHook is published on [Maven Central](https://search.maven.org/), and uses [Prefab](https://google.github.io/prefab/) package format for [native dependencies](https://developer.android.com/studio/build/native-dependencies), which is supported by [Android Gradle Plugin 4.0+](https://developer.android.com/studio/releases/gradle-plugin?buildsystem=cmake#native-dependencies).
 
 ```Gradle
 allprojects {
@@ -87,7 +87,7 @@ android {
 
 ### 4. Add packaging options
 
-If you are using bhook in an SDK project, you may need to avoid packaging libbytehook.so into your AAR, so as not to encounter duplicate libbytehook.so file when packaging the app project.
+If you are using ByteHook in an SDK project, you may need to avoid packaging libbytehook.so into your AAR, so as not to encounter duplicate libbytehook.so file when packaging the app project.
 
 ```Gradle
 android {
@@ -97,7 +97,7 @@ android {
 }
 ```
 
-On the other hand, if you are using bhook in an APP project, you may need to add some options to deal with conflicts caused by duplicate libbytehook.so file.
+On the other hand, if you are using ByteHook in an APP project, you may need to add some options to deal with conflicts caused by duplicate libbytehook.so file.
 
 ```Gradle
 android {
@@ -158,9 +158,13 @@ These three hook functions are used to hook single, partial, and all caller dyna
 Notice:
 * If you need to call the original function in the proxy function, please always use the `BYTEHOOK_CALL_PREV()` macro.
 * Make sure to call `BYTEHOOK_POP_STACK()` macro before proxy function returning. In the CPP source file, you can also call `BYTEHOOK_STACK_SCOPE()` macro at the beginning of the proxy function instead.
-* bhook proxies `dlopen()` and `android_dlopen_ext()` internally, so please do not try to hook these two functions. If you want to monitor the loading of ELF, please use `bytehook_add_dlopen_callback()` and `bytehook_del_dlopen_callback()`.
 
 There is a sample app in the [bytehook-sample](bytehook_sample) folder you can refer to.
+
+
+## Documentation
+
+[Documentation](doc)
 
 
 ## Contributing

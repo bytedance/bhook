@@ -1,6 +1,6 @@
-# Contributing to bhook
+# Contributing to ByteHook
 
-Welcome to the bhook project. Read on to learn more about our development process and how to propose bug fixes and improvements.
+Welcome to the ByteHook project. Read on to learn more about our development process and how to propose bug fixes and improvements.
 
 ## Issues
 
@@ -44,4 +44,4 @@ Please make sure the following is done when submitting a pull request:
 
 ## License
 
-By contributing to bhook, you agree that your contributions will be licensed under its [MIT LICENSE](LICENSE).
+By contributing to ByteHook, you agree that your contributions will be licensed under its [MIT LICENSE](LICENSE).
