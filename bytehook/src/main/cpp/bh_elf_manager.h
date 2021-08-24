@@ -30,13 +30,10 @@ typedef struct bh_elf_manager bh_elf_manager_t;
 bh_elf_manager_t *bh_elf_manager_create(void);
 
 typedef void (*bh_elf_manager_post_add_cb_t)(bh_elf_t *elf, void *arg);
-void bh_elf_manager_refresh(bh_elf_manager_t *self, bool clean, bh_elf_manager_post_add_cb_t cb, void *cb_arg);
+void bh_elf_manager_refresh(bh_elf_manager_t *self, bool sync_clean, bh_elf_manager_post_add_cb_t cb, void *cb_arg);
 
 typedef bool (*bh_elf_manager_iterate_cb_t)(bh_elf_t *elf, void *arg);
 void bh_elf_manager_iterate(bh_elf_manager_t *self, bh_elf_manager_iterate_cb_t cb, void *cb_arg);
-
-//bh_elf_t *bh_elf_manager_obtain_elf_ref(bh_elf_manager_t *self, const char *pathname);
-//void bh_elf_manager_release_elf_ref(bh_elf_t *elf);
 
 bh_elf_t *bh_elf_manager_find_elf(bh_elf_manager_t *self, const char *pathname);
 

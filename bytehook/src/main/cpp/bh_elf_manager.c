@@ -86,8 +86,6 @@ static int bh_elf_manager_iterate_cb(struct dl_phdr_info *info, size_t size, voi
 
     uintptr_t *pkg = (uintptr_t *)arg;
     bh_elf_manager_t *self = (bh_elf_manager_t *)*pkg++;
-    uintptr_t val = *pkg++;
-    bool clean = (1 == val ? true : false);
     bh_elf_list_t *new_elfs = (bh_elf_list_t *)*pkg;
 
     // ignore invalid or unwanted ELF
@@ -114,48 +112,55 @@ static int bh_elf_manager_iterate_cb(struct dl_phdr_info *info, size_t size, voi
     }
 
     // ELF object set exist
-    if(NULL != elf && clean) bh_elf_set_exist(elf);
+    if(NULL != elf) bh_elf_set_exist(elf);
 
     return 0;
 }
 
-void bh_elf_manager_refresh(bh_elf_manager_t *self, bool clean, bh_elf_manager_post_add_cb_t cb, void *cb_arg)
+void bh_elf_manager_refresh(bh_elf_manager_t *self, bool sync_clean, bh_elf_manager_post_add_cb_t cb, void *cb_arg)
 {
     bh_elf_list_t new_elfs = TAILQ_HEAD_INITIALIZER(new_elfs);
 
-    uintptr_t pkg[3];
+    uintptr_t pkg[2];
     pkg[0] = (uintptr_t)self;
-    pkg[1] = clean ? 1 : 0;
-    pkg[2] = (NULL == cb ? (uintptr_t)NULL : (uintptr_t)(&new_elfs));
+    pkg[1] = (NULL == cb ? (uintptr_t)NULL : (uintptr_t)(&new_elfs));
 
-    // lock ELFs-tree
+    // write-lock ELFs-tree
     if(0 != pthread_rwlock_wrlock(&self->elfs_lock)) return;
 
     // iterate ELFs
     bh_dl_iterate(bh_elf_manager_iterate_cb, (void *)pkg);
 
+    // clean all ELF which not exist in linker's solist
     bh_elf_t *elf, *elf_tmp;
-    if(clean)
+    RB_FOREACH_SAFE(elf, bh_elf_tree, &self->elfs, elf_tmp)
     {
-        // remove and destroy all ELF which not exist in linker's solist
-        RB_FOREACH_SAFE(elf, bh_elf_tree, &self->elfs, elf_tmp)
+        if(!bh_elf_is_exist(elf))
         {
-            if(!bh_elf_is_exist(elf))
-            {
-                RB_REMOVE(bh_elf_tree, &self->elfs, elf);
-                self->elfs_cnt--;
-                bh_elf_destroy(&elf);
-            }
-            else
-            {
-                // waiting for the next round of checking existence
-                bh_elf_unset_exist(elf);
-            }
+            RB_REMOVE(bh_elf_tree, &self->elfs, elf);
+            self->elfs_cnt--;
+            TAILQ_INSERT_TAIL(&self->abandoned_elfs, elf, link_list);
+        }
+        else
+        {
+            // waiting for the next round of checking existence
+            bh_elf_unset_exist(elf);
         }
     }
 
     // unlock ELFs-tree
     pthread_rwlock_unlock(&self->elfs_lock);
+
+    // if we are in sync-clean status, no other iterate or hooks can be performed at the same time
+    if(sync_clean)
+    {
+        // remove and destroy all unreferenced ELF object in the abandoned list
+        TAILQ_FOREACH_SAFE(elf, &self->abandoned_elfs, link_list, elf_tmp)
+        {
+            TAILQ_REMOVE(&self->abandoned_elfs, elf, link_list);
+            bh_elf_destroy(&elf);
+        }
+    }
 
     // do callback for newborn ELFs (no need to lock)
     if(NULL != cb)

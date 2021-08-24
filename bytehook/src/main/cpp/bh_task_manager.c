@@ -90,13 +90,22 @@ static void bh_task_manager_post_dlopen(void *arg)
     bh_dl_monitor_dlclose_unlock();
 }
 
-static void bh_task_manager_post_dlclose(void *arg)
+static void bh_task_manager_post_dlclose(bool sync_refresh, void *arg)
 {
     (void)arg;
-    BH_LOG_INFO("task manager: post dlclose() OK");
+    BH_LOG_INFO("task manager: post dlclose() OK, sync_refresh: %d", sync_refresh);
 
-    // in the range of dl_monitor's wrlock
-    bh_elf_manager_refresh(bh_core_global()->elf_mgr, true, NULL, NULL);
+    if(sync_refresh)
+    {
+        // in the range of dl_monitor's write-lock
+        bh_elf_manager_refresh(bh_core_global()->elf_mgr, true, NULL, NULL);
+    }
+    else
+    {
+        bh_dl_monitor_dlclose_rdlock();
+        bh_elf_manager_refresh(bh_core_global()->elf_mgr, false, NULL, NULL);
+        bh_dl_monitor_dlclose_unlock();
+    }
 }
 
 static int bh_task_manager_init_dl_monitor(bh_task_manager_t *self)

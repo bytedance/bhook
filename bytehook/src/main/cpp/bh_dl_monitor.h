@@ -29,7 +29,7 @@
 typedef void (*bh_dl_monitor_post_dlopen_t)(void *arg);
 void bh_dl_monitor_set_post_dlopen(bh_dl_monitor_post_dlopen_t cb, void *cb_arg);
 
-typedef void (*bh_dl_monitor_post_dlclose_t)(void *arg);
+typedef void (*bh_dl_monitor_post_dlclose_t)(bool sync_refresh, void *arg);
 void bh_dl_monitor_set_post_dlclose(bh_dl_monitor_post_dlclose_t cb, void *cb_arg);
 
 void bh_dl_monitor_add_dlopen_callback(bytehook_pre_dlopen_t pre, bytehook_post_dlopen_t post, void *data);
