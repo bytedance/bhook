@@ -11,6 +11,8 @@ ByteHook is a PLT hook framework for Android app.
 
 Most of ByteDance's Android apps use ByteHook as the PLT hook solution online.
 
+If you have bug reports, questions, or suggestions for ByteHook, please submit them in [GitHub Issues](https://github.com/bytedance/bhook/issues). If you want to discuss any related topics, please post on [GitHub Discussions](https://github.com/bytedance/bhook/discussions). thanks.
+
 
 ## Features
 
@@ -24,7 +26,14 @@ Most of ByteDance's Android apps use ByteHook as the PLT hook solution online.
 * MIT licensed.
 
 
-## Usage
+## Documentation
+
+[ByteHook Documentation](doc)
+
+
+## Quick Start
+
+There is a sample app in the [bytehook-sample](bytehook_sample) you can refer to.
 
 ### 1. Add dependency in build.gradle
 
@@ -159,17 +168,10 @@ Notice:
 * If you need to call the original function in the proxy function, please always use the `BYTEHOOK_CALL_PREV()` macro.
 * Make sure to call `BYTEHOOK_POP_STACK()` macro before proxy function returning. In the CPP source file, you can also call `BYTEHOOK_STACK_SCOPE()` macro at the beginning of the proxy function instead.
 
-There is a sample app in the [bytehook-sample](bytehook_sample) folder you can refer to.
-
-
-## Documentation
-
-[Documentation](doc)
-
 
 ## Contributing
 
-[Contributing Guide](CONTRIBUTING.md)
+[ByteHook Contributing Guide](CONTRIBUTING.md)
 
 
 ## License

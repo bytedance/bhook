@@ -106,8 +106,8 @@ ByteHook 是针对“调用者”执行 hook 的 hook 方案。比如 `libart.so
   * hook 单个调用者（`bytehook_hook_single()`）
   * hook 部分调用者（`bytehook_hook_partial()`）
   * hook 全部调用者（`bytehook_hook_all()`）
-* 这 3 个 proxy 函数如果调用成功，都会返回一个stub（存根），后续可用于对该 task 执行 unhook；如果调用失败，会返回 `NULL`。
-* 这 3 个 proxy 函数都是同步执行的，ByteHook 内部没有创建任何其他的线程。
+* 这 3 个 hook 函数如果调用成功，都会返回一个stub（存根），后续可用于对该 task 执行 unhook；如果调用失败，会返回 `NULL`。
+* 这 3 个 hook 函数都是同步执行的，ByteHook 内部没有创建任何其他的线程。
 
 ### 自动完成 hook task
 
@@ -222,7 +222,7 @@ bytehook_hook_all(
 int bytehook_unhook(bytehook_stub_t stub);
 ```
 
-如果需要 unhook，在前面调用 proxy 函数时需要保存返回值（stub / 存根），在 unhook 的时候需要用到。举例：
+如果需要 unhook，在前面调用 hook 函数时需要保存返回值（stub / 存根），在 unhook 的时候需要用到。举例：
 
 ```C++
 void my_unhook()
@@ -363,7 +363,7 @@ ByteHook 内部也 hook 了 `dlopen()` 和 `android_dlopen_ext()`，用来感知
 
 由于 Android 7.0 开始有了 linker namespace 的限制，所以 hook `dlopen()` 和 `android_dlopen_ext()` 之后，如何调用原函数是个挑战。尤其在 Android 7.x 上，目前无法通过 `BYTEHOOK_CALL_PREV` 来调用原函数，这样无法绕过 linker namespace的限制。只能直接调用 linker 内部的一些非公开函数，来达到调用原函数的目的。
 
-但是这样做会带来一个问题：如果不调用 `BYTEHOOK_CALL_PREV`，那么多个 `dlopen()` 和 `android_dlopen_ext()` 的 hook proxy 函数中，只能有一个被执行（ByteHook 内部通过 `BYTEHOOK_CALL_PREV` 来达到多个 hook proxy 函数链式调用的目的）。
+但是这样做会带来一个问题：如果不调用 `BYTEHOOK_CALL_PREV`，那么多个 `dlopen()` 和 `android_dlopen_ext()` 的 proxy 函数中，只能有一个被执行（ByteHook 内部通过 `BYTEHOOK_CALL_PREV` 来达到多个 proxy 函数链式调用的目的）。
 
 如果你的需求只是监控一下 `dlopen()` 和 `android_dlopen_ext()` 的时间点和耗时，可以直接调用 ByteHook 提供的 API 来完成：
 

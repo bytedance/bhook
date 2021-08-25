@@ -6,7 +6,7 @@ Only Chinese documents are now available.
 
 [项目介绍和原理概述](overview.zh-CN.md)
 
-[快速入门使用](quickstart.zh-CN.md)
+[快速开始](quickstart.zh-CN.md)
 
 [Java API 手册](java_manual.zh-CN.md)
 

@@ -11,6 +11,8 @@ ByteHook 是一个针对 Android app 的 PLT hook 框架。
 
 字节跳动的大多数 Android app 在线上使用了 ByteHook 作为 PLT hook 方案。
 
+如果你有针对 ByteHook 的 bug 报告，问题，或者建议，请在 [GitHub Issues](https://github.com/bytedance/bhook/issues) 提出。如果你想进行任何相关的话题讨论，请在 [GitHub Discussions](https://github.com/bytedance/bhook/discussions) 发帖。谢谢。
+
 
 ## 特征
 
@@ -24,7 +26,14 @@ ByteHook 是一个针对 Android app 的 PLT hook 框架。
 * 使用 MIT 许可证授权。
 
 
-## 使用
+## 文档
+
+[ByteHook Documentation](doc)
+
+
+## 快速开始
+
+你可以参考 [bytehook-sample](bytehook_sample) 中的示例 app。
 
 ### 1. 在 build.gradle 中增加依赖
 
@@ -159,17 +168,10 @@ int bytehook_unhook(bytehook_stub_t stub);
 * 如果需要在代理函数中调用原函数，请始终使用 `BYTEHOOK_CALL_PREV()` 宏来完成。
 * 确保在代理函数返回前调用 `BYTEHOOK_POP_STACK()` 宏。在 CPP 源文件中，也可以改为在代理函数的开头调用 `BYTEHOOK_STACK_SCOPE()` 宏。
 
-你可以参考 [bytehook-sample](bytehook_sample) 文件夹中的示例 app。
-
-
-## 文档
-
-[Documentation](doc)
-
 
 ## 贡献
 
-[Contributing Guide](CONTRIBUTING.md)
+[ByteHook Contributing Guide](CONTRIBUTING.md)
 
 
 ## 许可证
