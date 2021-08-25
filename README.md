@@ -11,7 +11,7 @@ ByteHook is a PLT hook framework for Android app.
 
 Most of ByteDance's Android apps use ByteHook as the PLT hook solution online.
 
-If you have bug reports, questions, or suggestions for ByteHook, please submit them in [GitHub Issues](https://github.com/bytedance/bhook/issues). If you want to discuss any related topics, please post on [GitHub Discussions](https://github.com/bytedance/bhook/discussions). thanks.
+> If you have bug reports, questions, or suggestions for ByteHook, please submit them in [GitHub Issues](https://github.com/bytedance/bhook/issues). If you want to discuss any related topics, please post on [GitHub Discussions](https://github.com/bytedance/bhook/discussions). thanks.
 
 
 ## Features
@@ -165,6 +165,7 @@ int bytehook_unhook(bytehook_stub_t stub);
 These three hook functions are used to hook single, partial, and all caller dynamic libraries in the process.
 
 Notice:
+
 * If you need to call the original function in the proxy function, please always use the `BYTEHOOK_CALL_PREV()` macro.
 * Make sure to call `BYTEHOOK_POP_STACK()` macro before proxy function returning. In the CPP source file, you can also call `BYTEHOOK_STACK_SCOPE()` macro at the beginning of the proxy function instead.
 
