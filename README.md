@@ -11,7 +11,7 @@ ByteHook(aka bhook) is a PLT hook framework for Android app.
 
 Most of ByteDance's Android apps use ByteHook as the PLT hook solution online.
 
-> If you have bug reports, questions, or suggestions for ByteHook, please submit them in [GitHub Issues](https://github.com/bytedance/bhook/issues). If you want to discuss any related topics, please post on [GitHub Discussions](https://github.com/bytedance/bhook/discussions). thanks.
+> If you have any bug reports, suggestions, or problems. Please communicate with us via GitHub [Issues](https://github.com/bytedance/bhook/issues) or [Discussions](https://github.com/bytedance/bhook/discussions). 😀
 
 
 ## Features

@@ -11,7 +11,7 @@ ByteHook(aka bhook) 是一个针对 Android app 的 PLT hook 框架。
 
 字节跳动的大多数 Android app 在线上使用了 ByteHook 作为 PLT hook 方案。
 
-> 如果你有针对 ByteHook 的 bug 报告，问题，或者建议，请在 [GitHub Issues](https://github.com/bytedance/bhook/issues) 提出。如果你想进行任何相关的话题讨论，请在 [GitHub Discussions](https://github.com/bytedance/bhook/discussions) 发帖。谢谢。
+> 如果你有任何 bug 报告，建议，或问题。请通过 GitHub [Issues](https://github.com/bytedance/bhook/issues) 或 [Discussions](https://github.com/bytedance/bhook/discussions) 和我们沟通。😀
 
 
 ## 特征
