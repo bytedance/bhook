@@ -200,7 +200,7 @@ arm-linux-androideabi-readelf -rW ./libsample.so
 aarch64-linux-android-readelf -rW ./libsample.so
 ```
 
-### 编写 hook 函数（代理函数）
+### 编写 proxy 函数（代理函数）
 
 举例，上面例子中的 `my_strlen()` 函数，对 `strlen()` 的调用将被 hook 到 `my_strlen()`：
 
@@ -225,12 +225,12 @@ size_t my_strlen(const char* const str)
 }
 ```
 
-* 在 hook 函数中可以不调用原函数，也可以通过 `BYTEHOOK_CALL_PREV` 宏来调用原函数，但请不要通过函数名来直接调用原函数。
-* `BYTEHOOK_CALL_PREV` 宏在 C++ 源文件中的用法是：第一个参数传递当前的 hook 函数名（上例中为 `my_strlen()`），后面按照顺序依次传递函数的各个参数。（`BYTEHOOK_CALL_PREV` 宏在 C 源文件中的用法稍有不同，详见：[Native API 手册](native_manual.zh-CN.md)）
-* 每个 hook 函数中都必须执行 ByteHook 的 stack 清理逻辑。有两种方式：
+* 在 proxy 函数中可以不调用原函数，也可以通过 `BYTEHOOK_CALL_PREV` 宏来调用原函数，但请不要通过函数名来直接调用原函数。
+* `BYTEHOOK_CALL_PREV` 宏在 C++ 源文件中的用法是：第一个参数传递当前的 proxy 函数名（上例中为 `my_strlen()`），后面按照顺序依次传递函数的各个参数。（`BYTEHOOK_CALL_PREV` 宏在 C 源文件中的用法稍有不同，详见：[Native API 手册](native_manual.zh-CN.md)）
+* 每个 proxy 函数中都必须执行 ByteHook 的 stack 清理逻辑。有两种方式：
 
-1. 在 C++ 代码中：在“hook 函数”开头调用一次 `BYTEHOOK_STACK_SCOPE` 宏。（其中会通过析构函数的方式，来保证 stack 清理逻辑一定会被执行）
-2. 在 C 代码中：请在“hook 函数”的每一个“返回分支”末尾都调用 `BYTEHOOK_POP_STACK` 宏。例如：
+1. 在 C++ 代码中：在“proxy 函数”开头调用一次 `BYTEHOOK_STACK_SCOPE` 宏。（其中会通过析构函数的方式，来保证 stack 清理逻辑一定会被执行）
+2. 在 C 代码中：请在“proxy 函数”的每一个“返回分支”末尾都调用 `BYTEHOOK_POP_STACK` 宏。例如：
 
 ```C
 typedef size_t (*strlen_t)(const char* const);

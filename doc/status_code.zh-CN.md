@@ -92,7 +92,7 @@ hook 任务为“ hook 进程中所有 ELF 对 `libcutils.so` 中 `atrace_begin_
 
 ## 18
 
-自动模式中。在一个已经分配了 trampoline 的 hook list 中创建新的 hook 函数时失败。
+自动模式中。在一个已经分配了 trampoline 的 hook list 中创建新的 proxy 函数时失败。
 
 ## 19
 
@@ -100,7 +100,7 @@ hook 任务为“ hook 进程中所有 ELF 对 `libcutils.so` 中 `atrace_begin_
 
 ## 20
 
-同一个 ELF caller 的同一个函数上，已经存在了一个相同的 hook 函数。
+同一个 ELF caller 的同一个函数上，已经存在了一个相同的 proxy 函数。
 
 ## 21
 
