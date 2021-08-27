@@ -13,3 +13,5 @@ Only Chinese documents are now available.
 [Native API 手册](native_manual.zh-CN.md)
 
 [状态码](status_code.zh-CN.md)
+
+[sample app](https://github.com/bytedance/bhook/tree/main/bytehook_sample)
