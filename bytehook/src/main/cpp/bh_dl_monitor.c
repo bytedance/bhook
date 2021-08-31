@@ -250,16 +250,18 @@ static bool bh_dl_monitor_dlmutex_is_locked(void)
     return (intptr_t)(pthread_getspecific(bh_dl_monitor_dlmutex_lock_count_tls_key)) > 0;
 }
 
-static void bh_dl_monitor_dlmutex_add_lock_count(void)
+static size_t bh_dl_monitor_dlmutex_add_lock_count(void)
 {
     intptr_t count = (intptr_t)(pthread_getspecific(bh_dl_monitor_dlmutex_lock_count_tls_key));
     pthread_setspecific(bh_dl_monitor_dlmutex_lock_count_tls_key, (void *)(count + 1));
+    return (size_t)(count + 1);
 }
 
-static void bh_dl_monitor_dlmutex_sub_lock_count(void)
+static size_t bh_dl_monitor_dlmutex_sub_lock_count(void)
 {
     intptr_t count = (intptr_t)(pthread_getspecific(bh_dl_monitor_dlmutex_lock_count_tls_key));
     pthread_setspecific(bh_dl_monitor_dlmutex_lock_count_tls_key, (void *)(count - 1));
+    return (size_t)(count - 1);
 }
 
 // proxy for dlopen() when API level [16, 25]
@@ -291,10 +293,10 @@ static void* bh_dl_monitor_proxy_dlopen(const char *filename, int flags)
             bh_linker_unlock();
         }
     }
-    bh_dl_monitor_dlmutex_sub_lock_count();
+    size_t lock_count = bh_dl_monitor_dlmutex_sub_lock_count();
 
     // call dl_iterate_phdr() to update ELF-info-cache
-    if(NULL != handle && NULL != bh_dl_monitor_post_dlopen)
+    if(0 == lock_count && NULL != handle && NULL != bh_dl_monitor_post_dlopen)
     {
         BH_LOG_INFO("DL monitor: post dlopen(), filename: %s", filename);
         bh_dl_monitor_post_dlopen(bh_dl_monitor_post_dlopen_arg);
@@ -334,10 +336,10 @@ static void* bh_dl_monitor_proxy_android_dlopen_ext(const char* filename, int fl
             bh_linker_unlock();
         }
     }
-    bh_dl_monitor_dlmutex_sub_lock_count();
+    size_t lock_count = bh_dl_monitor_dlmutex_sub_lock_count();
 
     // call dl_iterate_phdr() to update ELF-info-cache
-    if(NULL != handle && NULL != bh_dl_monitor_post_dlopen)
+    if(0 == lock_count && NULL != handle && NULL != bh_dl_monitor_post_dlopen)
     {
         BH_LOG_INFO("DL monitor: post android_dlopen_ext(), filename: %s", filename);
         bh_dl_monitor_post_dlopen(bh_dl_monitor_post_dlopen_arg);
@@ -360,10 +362,10 @@ static void* bh_dl_monitor_proxy_loader_dlopen(const char* filename, int flags, 
         handle = bh_dl_monitor_orig_loader_dlopen(filename, flags, caller_addr);
     else
         handle = BYTEHOOK_CALL_PREV(bh_dl_monitor_proxy_loader_dlopen, bh_dl_monitor_loader_dlopen_t, filename, flags, caller_addr);
-    bh_dl_monitor_dlmutex_sub_lock_count();
+    size_t lock_count = bh_dl_monitor_dlmutex_sub_lock_count();
 
     // call dl_iterate_phdr() to update ELF-info-cache
-    if(NULL != handle && NULL != bh_dl_monitor_post_dlopen)
+    if(0 == lock_count && NULL != handle && NULL != bh_dl_monitor_post_dlopen)
     {
         BH_LOG_INFO("DL monitor: post __loader_dlopen(), filename: %s", filename);
         bh_dl_monitor_post_dlopen(bh_dl_monitor_post_dlopen_arg);
@@ -386,10 +388,10 @@ static void* bh_dl_monitor_proxy_loader_android_dlopen_ext(const char* filename,
         handle = bh_dl_monitor_orig_loader_android_dlopen_ext(filename, flags, extinfo, caller_addr);
     else
         handle = BYTEHOOK_CALL_PREV(bh_dl_monitor_proxy_loader_android_dlopen_ext, bh_dl_monitor_loader_android_dlopen_ext_t, filename, flags, extinfo, caller_addr);
-    bh_dl_monitor_dlmutex_sub_lock_count();
+    size_t lock_count = bh_dl_monitor_dlmutex_sub_lock_count();
 
     // call dl_iterate_phdr() to update ELF-info-cache
-    if(NULL != handle && NULL != bh_dl_monitor_post_dlopen)
+    if(0 == lock_count && NULL != handle && NULL != bh_dl_monitor_post_dlopen)
     {
         BH_LOG_INFO("DL monitor: post __loader_android_dlopen_ext(), filename: %s", filename);
         bh_dl_monitor_post_dlopen(bh_dl_monitor_post_dlopen_arg);
@@ -414,10 +416,10 @@ static int bh_dl_monitor_proxy_dlclose(void* handle)
         ret = bh_dl_monitor_orig_dlclose(handle);
     else
         ret = BYTEHOOK_CALL_PREV(bh_dl_monitor_proxy_dlclose, bh_dl_monitor_dlclose_t, handle);
-    bh_dl_monitor_dlmutex_sub_lock_count();
+    size_t lock_count = bh_dl_monitor_dlmutex_sub_lock_count();
 
     // call dl_iterate_phdr() to update ELF-info-cache
-    if(0 == ret && NULL != bh_dl_monitor_post_dlclose)
+    if(0 == lock_count && 0 == ret && NULL != bh_dl_monitor_post_dlclose)
     {
         BH_LOG_INFO("DL monitor: post dlclose(), handle: %p", handle);
         bh_dl_monitor_post_dlclose(wrlocked, bh_dl_monitor_post_dlclose_arg);
@@ -442,10 +444,10 @@ static int bh_dl_monitor_proxy_loader_dlclose(void* handle)
         ret = bh_dl_monitor_orig_loader_dlclose(handle);
     else
         ret = BYTEHOOK_CALL_PREV(bh_dl_monitor_proxy_loader_dlclose, bh_dl_monitor_loader_dlclose_t, handle);
-    bh_dl_monitor_dlmutex_sub_lock_count();
+    size_t lock_count = bh_dl_monitor_dlmutex_sub_lock_count();
 
     // call dl_iterate_phdr() to update ELF-info-cache
-    if(0 == ret && NULL != bh_dl_monitor_post_dlclose)
+    if(0 == lock_count && 0 == ret && NULL != bh_dl_monitor_post_dlclose)
     {
         BH_LOG_INFO("DL monitor: post __loader_dlclose(), handle: %p", handle);
         bh_dl_monitor_post_dlclose(wrlocked, bh_dl_monitor_post_dlclose_arg);
