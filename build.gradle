@@ -33,7 +33,7 @@ ext {
 
     POM_GROUP_ID = "com.bytedance"
     POM_ARTIFACT_ID = "bytehook"
-    POM_VERSION_NAME = "1.0.1"
+    POM_VERSION_NAME = "1.0.2"
 
     POM_NAME = "bytehook"
     POM_DESCRIPTION = "ByteHook is a PLT hook framework for Android app."
