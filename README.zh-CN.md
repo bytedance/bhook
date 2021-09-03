@@ -9,7 +9,7 @@
 
 ByteHook 是一个针对 Android app 的 PLT hook 框架。
 
-字节跳动的大多数 Android app（包括 TikTok，抖音，今日头条，西瓜视频，飞书等）在线上使用 ByteHook 作为 PLT hook 方案。
+字节跳动的大多数 Android app（包括 TikTok，抖音，今日头条，西瓜视频等）在线上使用 ByteHook 作为 PLT hook 方案。
 
 
 ## 特征
