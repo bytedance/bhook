@@ -7,20 +7,20 @@
 
 [README 中文版](README.zh-CN.md)
 
-ByteHook is a PLT hook framework for Android app.
+ByteHook is a PLT hook framework for Android app. It provides an overall solution for using PLT hook in Android app, not just address replacement.
 
-Most of ByteDance's Android apps(including TikTok, Douyin, Toutiao, Xigua Video, etc.) use ByteHook as the PLT hook solution online.
+Most of ByteDance's Android apps(including TikTok, Douyin, Toutiao, Xigua Video) use ByteHook as the PLT hook solution online.
 
 
 ## Features
 
+* Support Android 4.1 - 12 (API level 16 - 31).
+* Support armeabi-v7a, arm64-v8a, x86 and x86_64.
 * Multiple hooks and unhooks for the same function do not conflict with each other.
 * Hook a single, partial or all of the dynamic libraries in the process.
 * Hook the newly loaded dynamic libraries automatically.
 * Avoid recursive-calls and circular-calls between proxy functions automatically.
 * Support unwinding backtrace in proxy function.
-* Support Android 4.1 - 12 (API level 16 - 31). 
-* Support armeabi-v7a, arm64-v8a, x86 and x86_64.
 * MIT licensed.
 
 

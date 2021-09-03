@@ -7,20 +7,20 @@
 
 [README English Version](README.md)
 
-ByteHook 是一个针对 Android app 的 PLT hook 框架。
+ByteHook 是一个针对 Android app 的 PLT hook 框架。它提供了一套 Android app 使用 PLT hook 的整体方案，而不仅仅是实现地址替换。
 
-字节跳动的大多数 Android app（包括 TikTok，抖音，今日头条，西瓜视频等）在线上使用 ByteHook 作为 PLT hook 方案。
+字节跳动的大多数 Android app（包括 TikTok，抖音，今日头条，西瓜视频）在线上使用了 ByteHook 作为 PLT hook 方案。
 
 
 ## 特征
 
+* 支持 Android 4.1 - 12 (API level 16 - 31)。
+* 支持 armeabi-v7a, arm64-v8a, x86 和 x86_64。
 * 对同一个函数的多个 hook 和 unhook 互相不冲突。
 * 可以 hook 进程中单个、部分或全部的动态库。
 * 自动 hook 新加载的动态库。
 * 自动避免代理函数之间的递归调用和环形调用。
 * 代理函数中支持回溯调用栈。
-* 支持 Android 4.1 - 12 (API level 16 - 31)。
-* 支持 armeabi-v7a, arm64-v8a, x86 和 x86_64。
 * 使用 MIT 许可证授权。
 
 
