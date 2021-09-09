@@ -7,9 +7,9 @@
 
 [README 中文版](README.zh-CN.md)
 
-ByteHook is a PLT hook framework for Android app. It provides an overall solution for using PLT hook in Android app, not just replacing addresses.
+ByteHook(aka bhook) is a PLT hook framework for Android app. It provides an overall solution for using PLT hook in Android app, not just replacing addresses.
 
-Most of ByteDance's Android apps(including TikTok, Douyin, Toutiao, Xigua Video) use ByteHook as the PLT hook solution in the online environment.
+Most of ByteDance's Android apps(including Douyin, Toutiao, Xigua Video) use ByteHook as the PLT hook solution in the online environment.
 
 
 ## Features
