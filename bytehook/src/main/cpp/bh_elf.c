@@ -525,6 +525,19 @@ static ElfW(Sym) *bh_elf_find_import_func_symbol_by_symbol_name(bh_elf_t *self, 
         if(NULL != sym && BH_ELF_IS_EXPORT_SYM(sym->st_shndx)) return sym;
     }
 
+    // PLT that is only used internally may not be included in the .hash or .gnu.hash.
+    //
+    // from .rel.plt and .rel.dyn, O(n)
+    for(size_t i = 0; i < self->rel_plt_cnt; i++)
+    {
+        size_t sym_idx = BH_ELF_R_SYM(self->rel_plt[i].r_info);
+        if(0 == strcmp(self->dynstr + self->dynsym[sym_idx].st_name, sym_name)) return &self->dynsym[sym_idx];
+    }
+    for(size_t i = 0; i < self->rel_dyn_cnt; i++)
+    {
+        size_t sym_idx = BH_ELF_R_SYM(self->rel_dyn[i].r_info);
+        if(0 == strcmp(self->dynstr + self->dynsym[sym_idx].st_name, sym_name)) return &self->dynsym[sym_idx];
+    }
     return NULL;
 }
 
