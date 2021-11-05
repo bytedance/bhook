@@ -50,7 +50,8 @@ bytehook_stub_t bh_core_hook_single(
     const char *sym_name,
     void *new_func,
     bytehook_hooked_t hooked,
-    void *hooked_arg);
+    void *hooked_arg,
+    uintptr_t caller_addr);
 
 bytehook_stub_t bh_core_hook_partial(
     bytehook_caller_allow_filter_t caller_allow_filter,
@@ -59,16 +60,18 @@ bytehook_stub_t bh_core_hook_partial(
     const char *sym_name,
     void *new_func,
     bytehook_hooked_t hooked,
-    void *hooked_arg);
+    void *hooked_arg,
+    uintptr_t caller_addr);
 
 bytehook_stub_t bh_core_hook_all(
     const char *callee_path_name,
     const char *sym_name,
     void *new_func,
     bytehook_hooked_t hooked,
-    void *hooked_arg);
+    void *hooked_arg,
+    uintptr_t caller_addr);
 
-int bh_core_unhook(bytehook_stub_t stub);
+int bh_core_unhook(bytehook_stub_t stub, uintptr_t caller_addr);
 
 void bh_core_set_debug(bool debug);
 

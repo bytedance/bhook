@@ -7,6 +7,8 @@
         bytehook_hook_partial;
         bytehook_unhook;
         bytehook_set_debug;
+        bytehook_get_records;
+        bytehook_dump_records;
         bytehook_get_prev_func;
         bytehook_pop_stack;
         bytehook_get_return_address;

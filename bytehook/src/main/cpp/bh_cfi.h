@@ -19,17 +19,8 @@
 // SOFTWARE.
 //
 
-// Created by Kelun Cai (caikelun@bytedance.com) on 2020-06-02.
+// Created by Li Han (hanli.lee@bytedance.com) on 2020-11-04.
 
 #pragma once
-#include "bh_task.h"
 
-typedef struct bh_task_manager bh_task_manager_t;
-
-bh_task_manager_t *bh_task_manager_create(void);
-
-void bh_task_manager_add(bh_task_manager_t *self, bh_task_t *task);
-void bh_task_manager_del(bh_task_manager_t *self, bh_task_t *task);
-
-void bh_task_manager_hook(bh_task_manager_t *self, bh_task_t *task);
-int bh_task_manager_unhook(bh_task_manager_t *self, bh_task_t *task, uintptr_t caller_addr);
+int bh_cfi_disable_slowpath(void);

@@ -47,6 +47,16 @@
                 android:onClick="onTestClick"
                 android:text="call open( ) in libhookee.so" />
 
+            <Button style="@style/Theme.Button"
+                android:id="@+id/getRecords"
+                android:onClick="onGetRecordsClick"
+                android:text="get records (as a string)" />
+
+            <Button style="@style/Theme.Button"
+                android:id="@+id/dumpRecords"
+                android:onClick="onDumpRecordsClick"
+                android:text="dump records (to FD)" />
+
         </LinearLayout>
     </ScrollView>
 </LinearLayout>

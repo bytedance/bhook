@@ -26,6 +26,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <errno.h>
+#include <time.h>
+#include <stdarg.h>
 #include <inttypes.h>
 #include <android/api-level.h>
 
@@ -44,6 +46,7 @@
     _rc; })
 
 int bh_util_set_addr_protect(void *addr, int prot);
+int bh_util_set_protect(void *start, void *end, int prot);
 
 bool bh_util_starts_with(const char *str, const char* start);
 bool bh_util_ends_with(const char* str, const char* ending);
@@ -51,3 +54,10 @@ bool bh_util_ends_with(const char* str, const char* ending);
 size_t bh_util_trim_ending(char *start);
 
 int bh_util_get_api_level(void);
+
+int bh_util_write(int fd, const char *buf, size_t buf_len);
+
+struct tm *bh_util_localtime_r(const time_t *timep, long gmtoff, struct tm *result);
+
+size_t bh_util_vsnprintf(char *buffer, size_t buffer_size, const char *format, va_list args);
+size_t bh_util_snprintf(char *buffer, size_t buffer_size, const char *format, ...);

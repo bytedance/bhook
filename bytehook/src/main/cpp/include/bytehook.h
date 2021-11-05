@@ -71,6 +71,7 @@
 #define BYTEHOOK_STATUS_CODE_READ_ELF            21
 #define BYTEHOOK_STATUS_CODE_CFI_HOOK_FAILED     22
 #define BYTEHOOK_STATUS_CODE_ORIG_ADDR           23
+#define BYTEHOOK_STATUS_CODE_INITERR_CFI         24
 
 #define BYTEHOOK_MODE_AUTOMATIC 0
 #define BYTEHOOK_MODE_MANUAL    1
@@ -123,6 +124,10 @@ bytehook_stub_t bytehook_hook_all(
 int bytehook_unhook(bytehook_stub_t stub);
 
 void bytehook_set_debug(bool debug);
+
+// get operation records
+char *bytehook_get_records(void);
+void bytehook_dump_records(int fd);
 
 // for internal use
 void *bytehook_get_prev_func(void *func);

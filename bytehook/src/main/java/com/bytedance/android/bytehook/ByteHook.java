@@ -67,7 +67,17 @@ public class ByteHook {
     }
 
     public static void setDebug(boolean debug) {
+        if (initStatus == 0) {
+            nativeSetDebug(debug);
+        }
         nativeSetDebug(debug);
+    }
+
+    public static String getRecords() {
+        if (initStatus == 0) {
+            return nativeGetRecords();
+        }
+        return null;
     }
 
     public static class Config {
@@ -152,4 +162,6 @@ public class ByteHook {
     private static native int nativeInit(int mode, boolean debug);
 
     private static native void nativeSetDebug(boolean debug);
+
+    private static native String nativeGetRecords();
 }

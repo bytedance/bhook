@@ -70,6 +70,9 @@ typedef struct bh_task
     bytehook_hooked_t hooked;
     void *hooked_arg;
 
+    uintptr_t hook_caller_addr;
+    uintptr_t unhook_caller_addr;
+
     void *manual_orig_func; //for manual mode
 
     TAILQ_ENTRY(bh_task,) link;
@@ -82,7 +85,8 @@ bh_task_t *bh_task_create_single(
     const char *sym_name,
     void *new_func,
     bytehook_hooked_t hooked,
-    void *hooked_arg);
+    void *hooked_arg,
+    uintptr_t caller_addr);
 
 bh_task_t *bh_task_create_partial(
     bytehook_caller_allow_filter_t caller_allow_filter,
@@ -91,20 +95,22 @@ bh_task_t *bh_task_create_partial(
     const char *sym_name,
     void *new_func,
     bytehook_hooked_t hooked,
-    void *hooked_arg);
+    void *hooked_arg,
+    uintptr_t caller_addr);
 
 bh_task_t *bh_task_create_all(
     const char *callee_path_name,
     const char *sym_name,
     void *new_func,
     bytehook_hooked_t hooked,
-    void *hooked_arg);
+    void *hooked_arg,
+    uintptr_t caller_addr);
 
 void bh_task_destroy(bh_task_t **self);
 
 void bh_task_hook(bh_task_t *self);
 void bh_task_hook_elf(bh_task_t *self, bh_elf_t *elf);
-int bh_task_unhook(bh_task_t *self);
+int bh_task_unhook(bh_task_t *self, uintptr_t caller_addr);
 
 void bh_task_set_manual_orig_func(bh_task_t *self, void *orig_func);
 void *bh_task_get_manual_orig_func(bh_task_t *self);

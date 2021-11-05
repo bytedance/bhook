@@ -1,7 +1,7 @@
 # bhook
 
 ![](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)
-![](https://img.shields.io/badge/release-1.0.2-red.svg?style=flat)
+![](https://img.shields.io/badge/release-1.0.3-red.svg?style=flat)
 ![](https://img.shields.io/badge/Android-4.1%20--%2012-blue.svg?style=flat)
 ![](https://img.shields.io/badge/arch-armeabi--v7a%20%7C%20arm64--v8a%20%7C%20x86%20%7C%20x86__64-blue.svg?style=flat)
 
@@ -9,7 +9,7 @@
 
 ByteHook(aka bhook) is a PLT hook framework for Android app. It provides an overall solution for using PLT hook in Android app, not just replacing addresses.
 
-Most of ByteDance's Android apps(including Douyin, Toutiao, Xigua Video) use ByteHook as the PLT hook solution in the online environment.
+Most of ByteDance's Android apps(including Douyin, Toutiao, Xigua Video) use ByteHook as the PLT hook solution in production.
 
 
 ## Features
@@ -53,7 +53,7 @@ android {
 }
 
 dependencies {
-    implementation 'com.bytedance:bytehook:1.0.2'
+    implementation 'com.bytedance:bytehook:1.0.3'
 }
 ```
 

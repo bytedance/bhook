@@ -38,6 +38,7 @@
 #include "bh_dl_monitor.h"
 #include "bh_linker.h"
 #include "bytesig.h"
+#include "bh_cfi.h"
 
 static bh_core_t bh_core = {
     .init_status = BYTEHOOK_STATUS_CODE_UNINIT,
@@ -104,6 +105,11 @@ int bh_core_init(int mode, bool debug)
             status = BYTEHOOK_STATUS_CODE_INITERR_SIG;
             goto end;
         }
+        if(0 != bh_cfi_disable_slowpath())
+        {
+            status = BYTEHOOK_STATUS_CODE_INITERR_CFI;
+            goto end;
+        }
         status = BYTEHOOK_STATUS_CODE_OK; // everything OK
 
  end:
@@ -121,12 +127,13 @@ bytehook_stub_t bh_core_hook_single(
     const char *sym_name,
     void *new_func,
     bytehook_hooked_t hooked,
-    void *hooked_arg)
+    void *hooked_arg,
+    uintptr_t caller_addr)
 {
     if(NULL == caller_path_name || NULL == sym_name || NULL == new_func) return NULL;
     if(BYTEHOOK_STATUS_CODE_OK != bh_core.init_status) return NULL;
 
-    bh_task_t *task = bh_task_create_single(caller_path_name, callee_path_name, sym_name, new_func, hooked, hooked_arg);
+    bh_task_t *task = bh_task_create_single(caller_path_name, callee_path_name, sym_name, new_func, hooked, hooked_arg, caller_addr);
     if(NULL != task)
     {
         bh_task_manager_add(bh_core.task_mgr, task);
@@ -142,12 +149,13 @@ bytehook_stub_t bh_core_hook_partial(
     const char *sym_name,
     void *new_func,
     bytehook_hooked_t hooked,
-    void *hooked_arg)
+    void *hooked_arg,
+    uintptr_t caller_addr)
 {
     if(NULL == caller_allow_filter || NULL == sym_name || NULL == new_func) return NULL;
     if(BYTEHOOK_STATUS_CODE_OK != bh_core.init_status) return NULL;
 
-    bh_task_t *task = bh_task_create_partial(caller_allow_filter, caller_allow_filter_arg, callee_path_name, sym_name, new_func, hooked, hooked_arg);
+    bh_task_t *task = bh_task_create_partial(caller_allow_filter, caller_allow_filter_arg, callee_path_name, sym_name, new_func, hooked, hooked_arg, caller_addr);
     if(NULL != task)
     {
         bh_task_manager_add(bh_core.task_mgr, task);
@@ -161,12 +169,13 @@ bytehook_stub_t bh_core_hook_all(
     const char *sym_name,
     void *new_func,
     bytehook_hooked_t hooked,
-    void *hooked_arg)
+    void *hooked_arg,
+    uintptr_t caller_addr)
 {
     if(NULL == sym_name || NULL == new_func) return NULL;
     if(BYTEHOOK_STATUS_CODE_OK != bh_core.init_status) return NULL;
 
-    bh_task_t *task = bh_task_create_all(callee_path_name, sym_name, new_func, hooked, hooked_arg);
+    bh_task_t *task = bh_task_create_all(callee_path_name, sym_name, new_func, hooked, hooked_arg, caller_addr);
     if(NULL != task)
     {
         bh_task_manager_add(bh_core.task_mgr, task);
@@ -175,14 +184,14 @@ bytehook_stub_t bh_core_hook_all(
     return (bytehook_stub_t)task;
 }
 
-int bh_core_unhook(bytehook_stub_t stub)
+int bh_core_unhook(bytehook_stub_t stub, uintptr_t caller_addr)
 {
     if(NULL == stub) return BYTEHOOK_STATUS_CODE_INVALID_ARG;
     if(BYTEHOOK_STATUS_CODE_OK != bh_core.init_status) return bh_core.init_status;
 
     bh_task_t *task = (bh_task_t *)stub;
     bh_task_manager_del(bh_core.task_mgr, task);
-    int status_code = bh_task_manager_unhook(bh_core.task_mgr, task);
+    int status_code = bh_task_manager_unhook(bh_core.task_mgr, task, caller_addr);
     bh_task_destroy(&task);
 
     return status_code;

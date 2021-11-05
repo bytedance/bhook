@@ -106,7 +106,7 @@ static bh_hook_t *bh_hook_manager_create_hook(bh_hook_manager_t *self, void *got
 static int bh_hook_manager_add_func(bh_hook_manager_t *self, bh_elf_t *caller_elf, void *got_addr, void *orig_func, bh_task_t *task, void **trampo, void **orig_func_ret)
 {
     *trampo = NULL;
-    int r = -1;
+    int r;
 
     pthread_mutex_lock(&self->hooks_lock);
 
@@ -117,15 +117,15 @@ static int bh_hook_manager_add_func(bh_hook_manager_t *self, bh_elf_t *caller_el
         hook = bh_hook_manager_create_hook(self, got_addr, orig_func, trampo);
     if(NULL == hook)
     {
-        bh_task_hooked(task, BYTEHOOK_STATUS_CODE_NEW_TRAMPO, caller_elf->pathname, NULL);
+        bh_task_hooked(task, BYTEHOOK_STATUS_CODE_NEW_TRAMPO, caller_elf->pathname, orig_func);
+        r = BYTEHOOK_STATUS_CODE_NEW_TRAMPO;
         goto end;
     }
 
     // add new-func to hook chain
     if(0 != (r = bh_hook_add_func(hook, task->new_func, task->id)))
     {
-        bh_task_hooked(task, r, caller_elf->pathname, NULL);
-        r = -1;
+        bh_task_hooked(task, r, caller_elf->pathname, orig_func);
         goto end;
     }
 
@@ -244,15 +244,15 @@ static int bh_hook_manager_verify_got_value(bh_elf_t *caller_elf, bh_task_t *tas
     return r;
 }
 
-static int bh_hook_manager_replace_got_value(bh_elf_t *caller_elf, bh_task_t *task, void *got_addr, void *new_func)
+static int bh_hook_manager_replace_got_value(bh_elf_t *caller_elf, bh_task_t *task, void *got_addr, void *orig_func, void *new_func)
 {
     // verify the GOT value
     if(BH_TASK_STATUS_UNHOOKING != task->status)
     {
         if(0 != bh_hook_manager_verify_got_value(caller_elf, task, got_addr))
         {
-            bh_task_hooked(task, BYTEHOOK_STATUS_CODE_GOT_VERIFY, caller_elf->pathname, NULL);
-            return -1;
+            bh_task_hooked(task, BYTEHOOK_STATUS_CODE_GOT_VERIFY, caller_elf->pathname, orig_func);
+            return BYTEHOOK_STATUS_CODE_GOT_VERIFY;
         }
     }
 
@@ -260,8 +260,8 @@ static int bh_hook_manager_replace_got_value(bh_elf_t *caller_elf, bh_task_t *ta
     int prot = bh_elf_get_protect_by_addr(caller_elf, got_addr);
     if(0 == prot)
     {
-        bh_task_hooked(task, BYTEHOOK_STATUS_CODE_GET_PROT, caller_elf->pathname, NULL);
-        return -1;
+        bh_task_hooked(task, BYTEHOOK_STATUS_CODE_GET_PROT, caller_elf->pathname, orig_func);
+        return BYTEHOOK_STATUS_CODE_GET_PROT;
     }
 
     // add write permission
@@ -269,27 +269,27 @@ static int bh_hook_manager_replace_got_value(bh_elf_t *caller_elf, bh_task_t *ta
     {
         if(0 != bh_util_set_addr_protect(got_addr, prot | PROT_WRITE))
         {
-            bh_task_hooked(task, BYTEHOOK_STATUS_CODE_SET_PROT, caller_elf->pathname, NULL);
-            return -1;
+            bh_task_hooked(task, BYTEHOOK_STATUS_CODE_SET_PROT, caller_elf->pathname, orig_func);
+            return BYTEHOOK_STATUS_CODE_SET_PROT;
         }
     }
 
     // replace the target function address by "new_func"
-    bool ok = false;
+    int r;
     BYTESIG_TRY(SIGSEGV, SIGBUS)
         __atomic_store_n((uintptr_t *)got_addr, (uintptr_t)new_func, __ATOMIC_SEQ_CST);
-        ok = true;
+        r = 0;
     BYTESIG_CATCH()
         bh_elf_set_error(caller_elf, true);
-        bh_task_hooked(task, BYTEHOOK_STATUS_CODE_SET_GOT, caller_elf->pathname, NULL);
+        bh_task_hooked(task, BYTEHOOK_STATUS_CODE_SET_GOT, caller_elf->pathname, orig_func);
+        r = BYTEHOOK_STATUS_CODE_SET_GOT;
     BYTESIG_EXIT
 
     // delete write permission
     if(0 == (prot & PROT_WRITE))
         bh_util_set_addr_protect(got_addr, prot);
 
-    //return 0;
-    return ok ? 0 : -1;
+    return r;
 }
 
 static size_t bh_hook_manager_find_all_got(bh_elf_t *caller_elf, bh_task_t *task, void **addr_array, size_t addr_array_cap)
@@ -310,14 +310,21 @@ static int bh_hook_manager_hook_single_got(bh_hook_manager_t *self, bh_elf_t *ca
 {
     int r;
 
-    void *orig_func = *((void **)got_addr);
+    void *orig_func = NULL;
+    BYTESIG_TRY(SIGSEGV, SIGBUS)
+        orig_func = *((void **)got_addr);
+    BYTESIG_CATCH()
+        bh_elf_set_error(caller_elf, true);
+        bh_task_hooked(task, BYTEHOOK_STATUS_CODE_READ_ELF, caller_elf->pathname, orig_func);
+        return BYTEHOOK_STATUS_CODE_SET_GOT;
+    BYTESIG_EXIT
 
     if(BYTEHOOK_MODE_MANUAL == bh_core_get_mode())
     {
         // manual mode:
 
         // 1. always patch with the externally specified address
-        r = bh_hook_manager_replace_got_value(caller_elf, task, got_addr, task->new_func);
+        r = bh_hook_manager_replace_got_value(caller_elf, task, got_addr, orig_func, task->new_func);
 
         // 2. save the original address in task object for unhook
         if(0 == r)
@@ -332,7 +339,8 @@ static int bh_hook_manager_hook_single_got(bh_hook_manager_t *self, bh_elf_t *ca
         }
 
         // 3. return the original address
-        if(0 == r) *orig_func_ret = orig_func;
+        if(0 == r)
+            *orig_func_ret = orig_func;
     }
     else
     {
@@ -346,7 +354,7 @@ static int bh_hook_manager_hook_single_got(bh_hook_manager_t *self, bh_elf_t *ca
         // 2. replace with the trampoline address if we haven't done it yet
         if(0 == r && NULL != trampo)
         {
-            r = bh_hook_manager_replace_got_value(caller_elf, task, got_addr, trampo);
+            r = bh_hook_manager_replace_got_value(caller_elf, task, got_addr, orig_func, trampo);
             if(0 == r)
             {
                 BH_LOG_INFO("hook chain: auto REPLACE. GOT %"PRIxPTR": %"PRIxPTR" -> %"PRIxPTR", %s, %s",
@@ -379,12 +387,19 @@ static int bh_hook_manager_hook_single_got(bh_hook_manager_t *self, bh_elf_t *ca
     return r;
 }
 
-static void bh_hook_manager_unhook_single_got(bh_hook_manager_t *self, bh_elf_t *caller_elf, bh_task_t *task, void *got_addr)
+static int bh_hook_manager_unhook_single_got(bh_hook_manager_t *self, bh_elf_t *caller_elf, bh_task_t *task, void *got_addr)
 {
-    int r;
+    int r = 0;
     void *restore_func;
 
-    void *orig_func = *((void **)got_addr);
+    void *orig_func = NULL;
+    BYTESIG_TRY(SIGSEGV, SIGBUS)
+        orig_func = *((void **)got_addr);
+    BYTESIG_CATCH()
+        bh_elf_set_error(caller_elf, true);
+        bh_task_hooked(task, BYTEHOOK_STATUS_CODE_READ_ELF, caller_elf->pathname, orig_func);
+        return BYTEHOOK_STATUS_CODE_SET_GOT;
+    BYTESIG_EXIT
 
     if(BYTEHOOK_MODE_MANUAL == bh_core_get_mode())
     {
@@ -392,7 +407,7 @@ static void bh_hook_manager_unhook_single_got(bh_hook_manager_t *self, bh_elf_t 
         restore_func = bh_task_get_manual_orig_func(task);
         if(NULL != restore_func)
         {
-            r = bh_hook_manager_replace_got_value(caller_elf, task, got_addr, restore_func);
+            r = bh_hook_manager_replace_got_value(caller_elf, task, got_addr, NULL, restore_func);
             if(0 == r)
             {
                 BH_LOG_INFO("hook chain: manual RESTORE. GOT %"PRIxPTR": %"PRIxPTR" -> %"PRIxPTR", %s, %s",
@@ -403,8 +418,6 @@ static void bh_hook_manager_unhook_single_got(bh_hook_manager_t *self, bh_elf_t 
                             caller_elf->pathname);
             }
         }
-        else
-            r = -1;
     }
     else
     {
@@ -416,7 +429,7 @@ static void bh_hook_manager_unhook_single_got(bh_hook_manager_t *self, bh_elf_t 
         // 2. restore GOT to original function if there is no enabled hook func
         if(0 == r && NULL != restore_func)
         {
-            r = bh_hook_manager_replace_got_value(caller_elf, task, got_addr, restore_func);
+            r = bh_hook_manager_replace_got_value(caller_elf, task, got_addr, NULL, restore_func);
             if(0 == r)
             {
                 BH_LOG_INFO("hook chain: auto RESTORE. GOT %"PRIxPTR": %"PRIxPTR" -> %"PRIxPTR", %s, %s",
@@ -437,6 +450,8 @@ static void bh_hook_manager_unhook_single_got(bh_hook_manager_t *self, bh_elf_t 
                     task->sym_name,
                     caller_elf->pathname);
     }
+
+    return r;
 }
 
 static void bh_hook_manager_hook_impl(bh_hook_manager_t *self, bh_task_t *task, bh_elf_t *caller_elf)
@@ -469,10 +484,8 @@ static void bh_hook_manager_hook_impl(bh_hook_manager_t *self, bh_task_t *task, 
     void *orig_func = NULL;
     bh_elf_hook_lock(caller_elf);
     for(size_t i = 0; i < addr_array_sz; i++)
-    {
         if(0 != bh_hook_manager_hook_single_got(self, caller_elf, task, addr_array[i], &orig_func))
             everything_ok = false;
-    }
     bh_elf_hook_unlock(caller_elf);
 
     // do callback with STATUS_CODE_OK only once
@@ -517,14 +530,14 @@ static bool bh_hook_manager_hook_cfi(bh_hook_manager_t *self, bh_elf_t *caller_e
     bool ok;
 
     ok = false;
-    bh_task_t *task = bh_task_create_single(caller_elf->pathname, NULL, BH_CONST_SYM_CFI_SLOWPATH, (void *)bh_hook_manager_cfi_slowpath, bh_hook_manager_cfi_hooked, (void *)&ok);
+    bh_task_t *task = bh_task_create_single(caller_elf->pathname, NULL, BH_CONST_SYM_CFI_SLOWPATH, (void *)bh_hook_manager_cfi_slowpath, bh_hook_manager_cfi_hooked, (void *)&ok, 0);
     if(NULL == task) return false;
     bh_hook_manager_hook_impl(self, task, caller_elf);
     bh_task_destroy(&task);
     if(!ok) return false;
 
     ok = false;
-    task = bh_task_create_single(caller_elf->pathname, NULL, BH_CONST_SYM_CFI_SLOWPATH_DIAG, (void *)bh_hook_manager_cfi_slowpath_diag, bh_hook_manager_cfi_hooked, (void *)&ok);
+    task = bh_task_create_single(caller_elf->pathname, NULL, BH_CONST_SYM_CFI_SLOWPATH_DIAG, (void *)bh_hook_manager_cfi_slowpath_diag, bh_hook_manager_cfi_hooked, (void *)&ok, 0);
     if(NULL == task) return false;
     bh_hook_manager_hook_impl(self, task, caller_elf);
     bh_task_destroy(&task);
@@ -580,8 +593,14 @@ void bh_hook_manager_unhook(bh_hook_manager_t *self, bh_task_t *task, bh_elf_t *
     if(0 == addr_array_sz) return;
 
     // unhook
+    bool everything_ok = true;
     bh_elf_hook_lock(caller_elf);
     for(size_t i = 0; i < addr_array_sz; i++)
-        bh_hook_manager_unhook_single_got(self, caller_elf, task, addr_array[i]);
+        if(0 != bh_hook_manager_unhook_single_got(self, caller_elf, task, addr_array[i]))
+            everything_ok = false;
     bh_elf_hook_unlock(caller_elf);
+
+    // do callback with STATUS_CODE_OK only once
+    if(everything_ok)
+        bh_task_hooked(task, BYTEHOOK_STATUS_CODE_OK, caller_elf->pathname, NULL);
 }

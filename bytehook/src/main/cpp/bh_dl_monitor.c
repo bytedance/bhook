@@ -480,7 +480,8 @@ static int bh_dl_monitor_hook(void)
             BH_CONST_SYM_DLOPEN,
             (void *)bh_dl_monitor_proxy_dlopen,
             (BYTEHOOK_MODE_MANUAL == bh_core_get_mode()) ? bh_dl_monitor_proxy_dlopen_hooked : NULL,
-            NULL))) goto err;
+            NULL,
+            0))) goto err;
     }
 
     if(api_level >= __ANDROID_API_L__ && api_level <= __ANDROID_API_N_MR1__)
@@ -490,7 +491,8 @@ static int bh_dl_monitor_hook(void)
             BH_CONST_SYM_ANDROID_DLOPEN_EXT,
             (void *)bh_dl_monitor_proxy_android_dlopen_ext,
             (BYTEHOOK_MODE_MANUAL == bh_core_get_mode()) ? bh_dl_monitor_proxy_android_dlopen_ext_hooked : NULL,
-            NULL))) goto err;
+            NULL,
+            0))) goto err;
     }
 
     if(api_level >= __ANDROID_API_O__)
@@ -501,7 +503,8 @@ static int bh_dl_monitor_hook(void)
             BH_CONST_SYM_LOADER_DLOPEN, // STT_FUNC or STT_NOTYPE
             (void *)bh_dl_monitor_proxy_loader_dlopen,
             (BYTEHOOK_MODE_MANUAL == bh_core_get_mode()) ? bh_dl_monitor_proxy_loader_dlopen_hooked : NULL,
-            NULL))) goto err;
+            NULL,
+            0))) goto err;
 
         if(NULL == (bh_dl_monitor_stub_loader_android_dlopen_ext = bh_core_hook_single(
             BH_CONST_BASENAME_DL,
@@ -509,7 +512,8 @@ static int bh_dl_monitor_hook(void)
             BH_CONST_SYM_LOADER_ANDROID_DLOPEN_EXT, // STT_FUNC or STT_NOTYPE
             (void *)bh_dl_monitor_proxy_loader_android_dlopen_ext,
             (BYTEHOOK_MODE_MANUAL == bh_core_get_mode()) ? bh_dl_monitor_proxy_loader_android_dlopen_ext_hooked : NULL,
-            NULL))) goto err;
+            NULL,
+            0))) goto err;
     }
 
     if(api_level < __ANDROID_API_O__)
@@ -519,7 +523,8 @@ static int bh_dl_monitor_hook(void)
             BH_CONST_SYM_DLCLOSE,
             (void *)bh_dl_monitor_proxy_dlclose,
             (BYTEHOOK_MODE_MANUAL == bh_core_get_mode()) ? bh_dl_monitor_proxy_dlclose_hooked : NULL,
-            NULL))) goto err;
+            NULL,
+            0))) goto err;
     }
     else
     {
@@ -529,7 +534,8 @@ static int bh_dl_monitor_hook(void)
             BH_CONST_SYM_LOADER_DLCLOSE, // STT_FUNC or STT_NOTYPE
             (void *)bh_dl_monitor_proxy_loader_dlclose,
             (BYTEHOOK_MODE_MANUAL == bh_core_get_mode()) ? bh_dl_monitor_proxy_loader_dlclose_hooked : NULL,
-            NULL))) goto err;
+            NULL,
+            0))) goto err;
     }
 
     return 0;
@@ -583,32 +589,32 @@ void bh_dl_monitor_uninit(void)
 {
     if(NULL != bh_dl_monitor_stub_dlopen)
     {
-        bh_core_unhook(bh_dl_monitor_stub_dlopen);
+        bh_core_unhook(bh_dl_monitor_stub_dlopen, 0);
         bh_dl_monitor_stub_dlopen = NULL;
     }
     if(NULL != bh_dl_monitor_stub_android_dlopen_ext)
     {
-        bh_core_unhook(bh_dl_monitor_stub_android_dlopen_ext);
+        bh_core_unhook(bh_dl_monitor_stub_android_dlopen_ext, 0);
         bh_dl_monitor_stub_android_dlopen_ext = NULL;
     }
     if(NULL != bh_dl_monitor_stub_loader_dlopen)
     {
-        bh_core_unhook(bh_dl_monitor_stub_loader_dlopen);
+        bh_core_unhook(bh_dl_monitor_stub_loader_dlopen, 0);
         bh_dl_monitor_stub_loader_dlopen = NULL;
     }
     if(NULL != bh_dl_monitor_stub_loader_android_dlopen_ext)
     {
-        bh_core_unhook(bh_dl_monitor_stub_loader_android_dlopen_ext);
+        bh_core_unhook(bh_dl_monitor_stub_loader_android_dlopen_ext, 0);
         bh_dl_monitor_stub_loader_android_dlopen_ext = NULL;
     }
     if(NULL != bh_dl_monitor_stub_dlclose)
     {
-        bh_core_unhook(bh_dl_monitor_stub_dlclose);
+        bh_core_unhook(bh_dl_monitor_stub_dlclose, 0);
         bh_dl_monitor_stub_dlclose = NULL;
     }
     if(NULL != bh_dl_monitor_stub_loader_dlclose)
     {
-        bh_core_unhook(bh_dl_monitor_stub_loader_dlclose);
+        bh_core_unhook(bh_dl_monitor_stub_loader_dlclose, 0);
         bh_dl_monitor_stub_loader_dlclose = NULL;
     }
 }

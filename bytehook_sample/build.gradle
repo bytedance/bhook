@@ -65,7 +65,7 @@ dependencies {
     if (rootProject.ext.dependencyOnLocalLibrary) {
         implementation project(':bytehook')
     } else {
-        implementation 'com.bytedance:bytehook:1.0.2'
+        implementation 'com.bytedance:bytehook:1.0.3'
     }
 }
 

@@ -36,108 +36,112 @@
 #include "bh_util.h"
 #include "bh_log.h"
 #include "bytesig.h"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreserved-id-macro"
+#pragma clang diagnostic ignored "-Wvariadic-macros"
+#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+#pragma clang diagnostic ignored "-Wsign-conversion"
+#pragma clang diagnostic ignored "-Wpacked"
+#pragma clang diagnostic ignored "-Wshorten-64-to-32"
+#include "linux_syscall_support.h"
+#pragma clang diagnostic pop
 
-#define BH_TRAMPO_BLOCK_NAME       "bytehook-plt-trampolines"
-#define BH_TRAMPO_BLOCK_SIZE       4096
-#define BH_TRAMPO_ALIGN            4
-#define BH_TRAMPO_STACK_NAME       "bytehook-stack"
-#define BH_TRAMPO_STACK_SIZE       4096
-#define BH_TRAMPO_STACK_FRAME_MAX  ((BH_TRAMPO_STACK_SIZE - sizeof(bh_trampo_tls_t)) / sizeof(bh_trampo_hook_info_t))
-
-typedef struct bh_trampo_hook_info {
-    bh_hook_call_list_t running_list;
-    void *orig_func;
-    void *return_address;
-} bh_trampo_hook_info_t;
+#define BH_TRAMPO_BLOCK_NAME      "bytehook-plt-trampolines"
+#define BH_TRAMPO_BLOCK_SIZE      4096
+#define BH_TRAMPO_ALIGN           4
+#define BH_TRAMPO_STACK_NAME      "bytehook-stack"
+#define BH_TRAMPO_STACK_SIZE      4096
+#define BH_TRAMPO_STACK_FRAME_MAX 16
+#define BH_TRAMPO_THREAD_MAX      1024
 
 typedef struct {
-    size_t frame_cnt;
-} bh_trampo_tls_t;
+    bh_hook_call_list_t proxies;
+    void *orig_func;
+    void *return_address;
+} bh_trampo_frame_t;
+
+typedef struct
+{
+    size_t frames_cnt;
+    bh_trampo_frame_t frames[BH_TRAMPO_STACK_FRAME_MAX];
+} bh_trampo_stack_t;
 
 static pthread_key_t bh_trampo_tls_key;
+static bh_trampo_stack_t sh_hub_stack_cache[BH_TRAMPO_THREAD_MAX];
+static uint8_t sh_hub_stack_cache_used[BH_TRAMPO_THREAD_MAX];
 
-static bh_trampo_tls_t *bh_trampo_tls_ctor(void)
+static bh_trampo_stack_t *bh_trampo_stack_create(void)
 {
-    void *buf = (void *)(syscall(
-#if defined(__arm__) || defined(__i386__)
-        SYS_mmap2
-#elif defined(__aarch64__) || defined(__x86_64__)
-        SYS_mmap
-#endif
-        , NULL, BH_TRAMPO_STACK_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0));
-    if(MAP_FAILED == buf) return NULL;
+    // get stack from global cache
+    for(size_t i = 0; i < BH_TRAMPO_THREAD_MAX; i++)
+    {
+        uint8_t *used = &(sh_hub_stack_cache_used[i]);
+        if(0 == *used)
+        {
+            uint8_t expected = 0;
+            if(__atomic_compare_exchange_n(used, &expected, 1, false, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))
+            {
+                bh_trampo_stack_t *stack = &(sh_hub_stack_cache[i]);
+                stack->frames_cnt = 0;
+                return stack; // OK
+            }
+        }
+    }
 
-    syscall(SYS_prctl, PR_SET_VMA, PR_SET_VMA_ANON_NAME, buf, BH_TRAMPO_STACK_SIZE, BH_TRAMPO_STACK_NAME);
-
-    bh_trampo_tls_t *tls = (bh_trampo_tls_t *)buf;
-    tls->frame_cnt = 0;
-
-    return tls;
+    // create new stack by mmap
+    void *buf = sys_mmap(NULL, BH_TRAMPO_STACK_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if(MAP_FAILED == buf) return NULL; // failed
+    sys_prctl(PR_SET_VMA, PR_SET_VMA_ANON_NAME, (unsigned long)buf, BH_TRAMPO_STACK_SIZE, (unsigned long)BH_TRAMPO_STACK_NAME);
+    bh_trampo_stack_t *stack = (bh_trampo_stack_t *)buf;
+    stack->frames_cnt = 0;
+    return stack; // OK
 }
 
-static void bh_trampo_tls_dtor(void *buf)
+static void bh_trampo_stack_destroy(void *buf)
 {
     if(NULL == buf) return;
 
-    syscall(SYS_munmap, buf, BH_TRAMPO_STACK_SIZE);
+    if((uintptr_t)sh_hub_stack_cache <= (uintptr_t)buf && (uintptr_t)buf < ((uintptr_t)sh_hub_stack_cache + sizeof(sh_hub_stack_cache)))
+    {
+        // return stack to global cache
+        size_t i = ((uintptr_t)buf - (uintptr_t)sh_hub_stack_cache) / sizeof(bh_trampo_stack_t);
+        uint8_t *used = &(sh_hub_stack_cache_used[i]);
+        if(1 != *used) abort();
+        __atomic_store_n(used, 0, __ATOMIC_RELEASE);
+    }
+    else
+    {
+        // munmap stack
+        munmap(buf, BH_TRAMPO_STACK_SIZE);
+    }
 }
 
 int bh_trampo_init(void)
 {
-    if(0 != pthread_key_create(&bh_trampo_tls_key, bh_trampo_tls_dtor)) return -1;
+    if(0 != pthread_key_create(&bh_trampo_tls_key, bh_trampo_stack_destroy)) return -1;
+    memset(&sh_hub_stack_cache, 0, sizeof(sh_hub_stack_cache));
+    memset(&sh_hub_stack_cache_used, 0, sizeof(sh_hub_stack_cache_used));
     return 0;
-}
-
-static bh_trampo_hook_info_t *bh_trampo_hook_info_push(bh_trampo_tls_t *tls)
-{
-    if(tls->frame_cnt >= BH_TRAMPO_STACK_FRAME_MAX) return NULL;
-
-    uintptr_t frame = (uintptr_t)tls + sizeof(bh_trampo_tls_t) + sizeof(bh_trampo_hook_info_t) * tls->frame_cnt;
-    tls->frame_cnt++;
-
-    return (bh_trampo_hook_info_t *)frame;
-}
-
-static void bh_trampo_hook_info_pop(bh_trampo_tls_t *tls)
-{
-    if(tls->frame_cnt > 0)
-        tls->frame_cnt--;
-}
-
-static bh_trampo_hook_info_t *bh_trampo_hook_info_cur(bh_trampo_tls_t *tls)
-{
-    if(0 == tls->frame_cnt) return NULL;
-
-    uintptr_t frame = (uintptr_t)tls + sizeof(bh_trampo_tls_t) + sizeof(bh_trampo_hook_info_t) * (tls->frame_cnt - 1);
-
-    return (bh_trampo_hook_info_t *)frame;
-}
-
-static bh_trampo_hook_info_t *bh_trampo_hook_info_get(bh_trampo_tls_t *tls, size_t idx)
-{
-    uintptr_t frame = (uintptr_t)tls + sizeof(bh_trampo_tls_t) + sizeof(bh_trampo_hook_info_t) * idx;
-
-    return (bh_trampo_hook_info_t *)frame;
 }
 
 static void *bh_trampo_push_stack(bh_hook_t *hook, void *return_address)
 {
-    bh_trampo_tls_t *tls = (bh_trampo_tls_t *)pthread_getspecific(bh_trampo_tls_key);
+    bh_trampo_stack_t *stack = (bh_trampo_stack_t *)pthread_getspecific(bh_trampo_tls_key);
 
     // create TLS data, only once
-    if(__predict_false(NULL == tls))
+    if(__predict_false(NULL == stack))
     {
-        if(__predict_false(NULL == (tls = bh_trampo_tls_ctor()))) goto end;
-        pthread_setspecific(bh_trampo_tls_key, (void *)tls);
+        if(__predict_false(NULL == (stack = bh_trampo_stack_create()))) goto end;
+        pthread_setspecific(bh_trampo_tls_key, (void *)stack);
     }
 
     // check whether a recursive call occurred
     bool recursive = false;
-    for(size_t i = tls->frame_cnt; i > 0; i--)
+    for(size_t i = stack->frames_cnt; i > 0; i--)
     {
-        bh_trampo_hook_info_t *hook_info = bh_trampo_hook_info_get(tls, i - 1);
+        bh_trampo_frame_t *frame = &stack->frames[i - 1];
 
-        if(hook_info->orig_func == hook->orig_func)
+        if(frame->orig_func == hook->orig_func)
         {
             // recursive call found
             recursive = true;
@@ -154,12 +158,13 @@ static void *bh_trampo_push_stack(bh_hook_t *hook, void *return_address)
         {
             if(running->enabled)
             {
-                // push new hook-info
-                bh_trampo_hook_info_t *hook_info = bh_trampo_hook_info_push(tls);
-                if(NULL == hook_info) goto end;
-                hook_info->running_list = hook->running_list;
-                hook_info->orig_func = hook->orig_func;
-                hook_info->return_address = return_address;
+                // push a new frame for the current proxy
+                if(stack->frames_cnt >= BH_TRAMPO_STACK_FRAME_MAX) goto end;
+                stack->frames_cnt++;
+                bh_trampo_frame_t *frame = &stack->frames[stack->frames_cnt - 1];
+                frame->proxies = hook->running_list;
+                frame->orig_func = hook->orig_func;
+                frame->return_address = return_address;
 
                 return running->func;
             }
@@ -258,14 +263,14 @@ void *bh_trampo_create(bh_hook_t *hook)
 
 void *bh_trampo_get_prev_func(void *func)
 {
-    bh_trampo_tls_t *tls = (bh_trampo_tls_t *)pthread_getspecific(bh_trampo_tls_key);
-    bh_trampo_hook_info_t *cur = bh_trampo_hook_info_cur(tls);
-    if(NULL == cur) abort(); // called in a non-hook status?
+    bh_trampo_stack_t *stack = (bh_trampo_stack_t *)pthread_getspecific(bh_trampo_tls_key);
+    if(0 == stack->frames_cnt) abort(); // called in a non-hook status?
+    bh_trampo_frame_t *frame = &stack->frames[stack->frames_cnt - 1];
 
     // find and return the next enabled hook-function in the hook-chain
     bool found = false;
     bh_hook_call_t *running;
-    SLIST_FOREACH(running, &(cur->running_list), link)
+    SLIST_FOREACH(running, &(frame->proxies), link)
     {
         if(!found)
         {
@@ -281,23 +286,24 @@ void *bh_trampo_get_prev_func(void *func)
     if(NULL != running) return running->func;
 
     // did not find, return the original-function
-    return cur->orig_func;
+    return frame->orig_func;
 }
 
 void bh_trampo_pop_stack(void *return_address)
 {
-    bh_trampo_tls_t *tls = (bh_trampo_tls_t *)pthread_getspecific(bh_trampo_tls_key);
-    bh_trampo_hook_info_t *cur = bh_trampo_hook_info_cur(tls);
+    bh_trampo_stack_t *stack = (bh_trampo_stack_t *)pthread_getspecific(bh_trampo_tls_key);
+    if(0 == stack->frames_cnt) return;
+    bh_trampo_frame_t *frame = &stack->frames[stack->frames_cnt - 1];
 
-    if(NULL != cur && return_address == cur->return_address)
-        bh_trampo_hook_info_pop(tls);
+    if(return_address == frame->return_address)
+        stack->frames_cnt--;
 }
 
 void *bh_trampo_get_return_address(void)
 {
-    bh_trampo_tls_t *tls = (bh_trampo_tls_t *)pthread_getspecific(bh_trampo_tls_key);
-    bh_trampo_hook_info_t *cur = bh_trampo_hook_info_cur(tls);
-    if(NULL == cur) abort(); // called in a non-hook status?
+    bh_trampo_stack_t *stack = (bh_trampo_stack_t *)pthread_getspecific(bh_trampo_tls_key);
+    if(0 == stack->frames_cnt) abort(); // called in a non-hook status?
+    bh_trampo_frame_t *frame = &stack->frames[stack->frames_cnt - 1];
 
-    return cur->return_address;
+    return frame->return_address;
 }

@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <string.h>
 #include <dlfcn.h>
+#include <fcntl.h>
 #include <jni.h>
 #include <sys/time.h>
 #include <android/log.h>
@@ -207,6 +208,23 @@ static int hacker_unhook(JNIEnv *env, jobject thiz)
     return 0;
 }
 
+static void hacker_dump_records(JNIEnv *env, jobject thiz, jstring pathname)
+{
+    (void)thiz;
+
+    const char *c_pathname = (*env)->GetStringUTFChars(env, pathname, 0);
+    if(NULL == c_pathname) return;
+
+    int fd = open(c_pathname, O_CREAT | O_WRONLY | O_CLOEXEC | O_TRUNC | O_APPEND, S_IRUSR | S_IWUSR);
+    if(fd >= 0)
+    {
+        bytehook_dump_records(fd);
+        close(fd);
+    }
+
+    (*env)->ReleaseStringUTFChars(env, pathname, c_pathname);
+}
+
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved)
 {
     (void)reserved;
@@ -222,7 +240,8 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved)
 
     JNINativeMethod m[] = {
         {"nativeHook", "(I)I", (void *)hacker_hook},
-        {"nativeUnhook", "()I", (void *)hacker_unhook}
+        {"nativeUnhook", "()I", (void *)hacker_unhook},
+        {"nativeDumpRecords", "(Ljava/lang/String;)V", (void *)hacker_dump_records}
     };
     if(0 != (*env)->RegisterNatives(env, cls, m, sizeof(m) / sizeof(m[0]))) return JNI_ERR;
 

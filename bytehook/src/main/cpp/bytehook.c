@@ -28,6 +28,7 @@
 #include <pthread.h>
 #include "bytehook.h"
 #include "bh_core.h"
+#include "bh_recorder.h"
 
 int bytehook_init(int mode, bool debug)
 {
@@ -42,13 +43,15 @@ bytehook_stub_t bytehook_hook_single(
     bytehook_hooked_t hooked,
     void *hooked_arg)
 {
+    const void *caller_addr = __builtin_return_address(0);
     return bh_core_hook_single(
         caller_path_name,
         callee_path_name,
         sym_name,
         new_func,
         hooked,
-        hooked_arg);
+        hooked_arg,
+        (uintptr_t)caller_addr);
 }
 
 bytehook_stub_t bytehook_hook_partial(
@@ -60,6 +63,7 @@ bytehook_stub_t bytehook_hook_partial(
     bytehook_hooked_t hooked,
     void *hooked_arg)
 {
+    const void *caller_addr = __builtin_return_address(0);
     return bh_core_hook_partial(
         caller_allow_filter,
         caller_allow_filter_arg,
@@ -67,7 +71,8 @@ bytehook_stub_t bytehook_hook_partial(
         sym_name,
         new_func,
         hooked,
-        hooked_arg);
+        hooked_arg,
+        (uintptr_t)caller_addr);
 }
 
 bytehook_stub_t bytehook_hook_all(
@@ -77,22 +82,35 @@ bytehook_stub_t bytehook_hook_all(
     bytehook_hooked_t hooked,
     void *hooked_arg)
 {
+    const void *caller_addr = __builtin_return_address(0);
     return bh_core_hook_all(
         callee_path_name,
         sym_name,
         new_func,
         hooked,
-        hooked_arg);
+        hooked_arg,
+        (uintptr_t)caller_addr);
 }
 
 int bytehook_unhook(bytehook_stub_t stub)
 {
-    return bh_core_unhook(stub);
+    const void *caller_addr = __builtin_return_address(0);
+    return bh_core_unhook(stub, (uintptr_t)caller_addr);
 }
 
 void bytehook_set_debug(bool debug)
 {
     bh_core_set_debug(debug);
+}
+
+char *bytehook_get_records(void)
+{
+    return bh_recorder_get();
+}
+
+void bytehook_dump_records(int fd)
+{
+    bh_recorder_dump(fd);
 }
 
 void *bytehook_get_prev_func(void *func)

@@ -174,12 +174,12 @@ void bh_task_manager_hook(bh_task_manager_t *self, bh_task_t *task)
     bh_dl_monitor_dlclose_unlock();
 }
 
-int bh_task_manager_unhook(bh_task_manager_t *self, bh_task_t *task)
+int bh_task_manager_unhook(bh_task_manager_t *self, bh_task_t *task, uintptr_t caller_addr)
 {
     (void)self;
 
     bh_dl_monitor_dlclose_rdlock();
-    int r = bh_task_unhook(task);
+    int r = bh_task_unhook(task, caller_addr);
     bh_dl_monitor_dlclose_unlock();
     return r;
 }

@@ -132,6 +132,10 @@ static void hooked_callback(bytehook_stub_t task_stub,
 }
 ```
 
+## 24
+
+初始化失败。原因是初始化 CFI 兜底保护机制失败。
+
 ## 100
 
 java 层错误。初始化时，`loadLibrary` 失败。

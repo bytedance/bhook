@@ -44,32 +44,38 @@ static void bh_jni_set_debug(JNIEnv *env, jobject thiz, jboolean debug)
     bytehook_set_debug((bool)debug);
 }
 
-static JNINativeMethod bh_jni_methods[] = {
-    {
-        "nativeInit",
-        "(IZ)I",
-        (void *)bh_jni_init
-    },
-    {
-        "nativeSetDebug",
-        "(Z)V",
-        (void *)bh_jni_set_debug
-    }
-};
+static jstring bh_jni_get_records(JNIEnv *env, jobject thiz)
+{
+    (void)thiz;
+
+    char *str = bytehook_get_records();
+    if(NULL == str) return NULL;
+
+    jstring jstr = (*env)->NewStringUTF(env, str);
+    free(str);
+    return jstr;
+}
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm,
                                   void *reserved)
 {
-    JNIEnv *env;
-    jclass cls;
-
     (void)reserved;
 
     if(__predict_false(NULL == vm)) return JNI_ERR;
+
+    JNIEnv *env;
     if(__predict_false(JNI_OK != (*vm)->GetEnv(vm, (void **)&env, BH_JNI_VERSION))) return JNI_ERR;
     if(__predict_false(NULL == env || NULL == *env)) return JNI_ERR;
+
+    jclass cls;
     if(__predict_false(NULL == (cls = (*env)->FindClass(env, BH_JNI_CLASS_NAME)))) return JNI_ERR;
-    if(__predict_false(0 != (*env)->RegisterNatives(env, cls, bh_jni_methods, sizeof(bh_jni_methods) / sizeof(bh_jni_methods[0])))) return JNI_ERR;
+
+    JNINativeMethod m[] = {
+        {"nativeInit", "(IZ)I", (void *)bh_jni_init},
+        {"nativeSetDebug", "(Z)V", (void *)bh_jni_set_debug},
+        {"nativeGetRecords", "()Ljava/lang/String;", (void *)bh_jni_get_records}
+    };
+    if(__predict_false(0 != (*env)->RegisterNatives(env, cls, m, sizeof(m) / sizeof(m[0])))) return JNI_ERR;
 
     return BH_JNI_VERSION;
 }

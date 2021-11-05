@@ -14,4 +14,6 @@ Only Chinese documents are now available.
 
 [状态码](status_code.zh-CN.md)
 
+[操作记录](records.zh-CN.md)
+
 [sample app](https://github.com/bytedance/bhook/tree/main/bytehook_sample)
