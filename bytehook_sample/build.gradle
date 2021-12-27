@@ -58,14 +58,14 @@ android {
 }
 
 dependencies {
-    implementation 'androidx.appcompat:appcompat:1.3.1'
+    implementation 'androidx.appcompat:appcompat:1.4.0'
     implementation 'com.google.android.material:material:1.4.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.2'
 
     if (rootProject.ext.dependencyOnLocalLibrary) {
         implementation project(':bytehook')
     } else {
-        implementation 'com.bytedance:bytehook:1.0.3'
+        implementation 'com.bytedance:bytehook:1.0.4'
     }
 }
 
