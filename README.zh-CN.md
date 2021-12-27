@@ -175,4 +175,10 @@ int bytehook_unhook(bytehook_stub_t stub);
 
 ## 许可证
 
-[MIT License](LICENSE)
+ByteHook 使用 [MIT 许可证](LICENSE) 授权。
+
+ByteHook 使用了以下第三方源码：
+
+* [queue.h](bytehook/src/main/cpp/third_party/bsd/queue.h) (BSD 3-Clause License. Copyright (c) 1991, 1993 The Regents of the University of California.)
+* [tree.h](bytehook/src/main/cpp/third_party/bsd/tree.h) (BSD 2-Clause License. Copyright (c) 2002 Niels Provos <provos@citi.umich.edu>)
+* [linux\_syscall\_support.h](bytehook/src/main/cpp/third_party/lss/linux_syscall_support.h) (BSD 3-Clause License. Copyright (c) 2005-2011 Google, Inc.)

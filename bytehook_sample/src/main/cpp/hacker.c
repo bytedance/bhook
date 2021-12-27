@@ -218,7 +218,7 @@ static void hacker_dump_records(JNIEnv *env, jobject thiz, jstring pathname)
     int fd = open(c_pathname, O_CREAT | O_WRONLY | O_CLOEXEC | O_TRUNC | O_APPEND, S_IRUSR | S_IWUSR);
     if(fd >= 0)
     {
-        bytehook_dump_records(fd);
+        bytehook_dump_records(fd, BYTEHOOK_RECORD_ITEM_ALL);
         close(fd);
     }
 

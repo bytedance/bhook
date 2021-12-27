@@ -175,4 +175,10 @@ Notice:
 
 ## License
 
-[MIT License](LICENSE)
+ByteHook is MIT licensed, as found in the [LICENSE](LICENSE) file.
+
+ByteHook uses the following third-party source code:
+
+* [queue.h](bytehook/src/main/cpp/third_party/bsd/queue.h) (BSD 3-Clause License. Copyright (c) 1991, 1993 The Regents of the University of California.)
+* [tree.h](bytehook/src/main/cpp/third_party/bsd/tree.h) (BSD 2-Clause License. Copyright (c) 2002 Niels Provos <provos@citi.umich.edu>)
+* [linux\_syscall\_support.h](bytehook/src/main/cpp/third_party/lss/linux_syscall_support.h) (BSD 3-Clause License. Copyright (c) 2005-2011 Google, Inc.)
