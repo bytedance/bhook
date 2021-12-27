@@ -25,8 +25,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-int bh_recorder_add_hook(int error_number, uintptr_t sym_addr, const char *lib_name, const char *sym_name, uintptr_t new_addr, uintptr_t stub, uintptr_t caller_addr);
-int bh_recorder_add_unhook(int error_number, const char *lib_name, uintptr_t stub, uintptr_t caller_addr);
+int bh_recorder_add_hook(int error_number, const char *lib_name, const char *sym_name, uintptr_t new_addr, uintptr_t stub, uintptr_t caller_addr);
+int bh_recorder_add_unhook(int error_number, uintptr_t stub, uintptr_t caller_addr);
 
-char *bh_recorder_get(void);
-void bh_recorder_dump(int fd);
+char *bh_recorder_get(uint32_t item_flags);
+void bh_recorder_dump(int fd, uint32_t item_flags);

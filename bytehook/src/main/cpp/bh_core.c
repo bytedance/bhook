@@ -39,6 +39,7 @@
 #include "bh_linker.h"
 #include "bytesig.h"
 #include "bh_cfi.h"
+#include "bh_recorder.h"
 
 static bh_core_t bh_core = {
     .init_status = BYTEHOOK_STATUS_CODE_UNINIT,
@@ -133,11 +134,12 @@ bytehook_stub_t bh_core_hook_single(
     if(NULL == caller_path_name || NULL == sym_name || NULL == new_func) return NULL;
     if(BYTEHOOK_STATUS_CODE_OK != bh_core.init_status) return NULL;
 
-    bh_task_t *task = bh_task_create_single(caller_path_name, callee_path_name, sym_name, new_func, hooked, hooked_arg, caller_addr);
+    bh_task_t *task = bh_task_create_single(caller_path_name, callee_path_name, sym_name, new_func, hooked, hooked_arg);
     if(NULL != task)
     {
         bh_task_manager_add(bh_core.task_mgr, task);
         bh_task_manager_hook(bh_core.task_mgr, task);
+        bh_recorder_add_hook(task->hook_status_code, caller_path_name, sym_name, (uintptr_t)new_func, (uintptr_t)task, caller_addr);
     }
     return (bytehook_stub_t)task;
 }
@@ -155,11 +157,12 @@ bytehook_stub_t bh_core_hook_partial(
     if(NULL == caller_allow_filter || NULL == sym_name || NULL == new_func) return NULL;
     if(BYTEHOOK_STATUS_CODE_OK != bh_core.init_status) return NULL;
 
-    bh_task_t *task = bh_task_create_partial(caller_allow_filter, caller_allow_filter_arg, callee_path_name, sym_name, new_func, hooked, hooked_arg, caller_addr);
+    bh_task_t *task = bh_task_create_partial(caller_allow_filter, caller_allow_filter_arg, callee_path_name, sym_name, new_func, hooked, hooked_arg);
     if(NULL != task)
     {
         bh_task_manager_add(bh_core.task_mgr, task);
         bh_task_manager_hook(bh_core.task_mgr, task);
+        bh_recorder_add_hook(BYTEHOOK_STATUS_CODE_MAX, "PARTIAL", sym_name, (uintptr_t)new_func, (uintptr_t)task, caller_addr);
     }
     return (bytehook_stub_t)task;
 }
@@ -175,11 +178,12 @@ bytehook_stub_t bh_core_hook_all(
     if(NULL == sym_name || NULL == new_func) return NULL;
     if(BYTEHOOK_STATUS_CODE_OK != bh_core.init_status) return NULL;
 
-    bh_task_t *task = bh_task_create_all(callee_path_name, sym_name, new_func, hooked, hooked_arg, caller_addr);
+    bh_task_t *task = bh_task_create_all(callee_path_name, sym_name, new_func, hooked, hooked_arg);
     if(NULL != task)
     {
         bh_task_manager_add(bh_core.task_mgr, task);
         bh_task_manager_hook(bh_core.task_mgr, task);
+        bh_recorder_add_hook(BYTEHOOK_STATUS_CODE_MAX, "ALL", sym_name, (uintptr_t)new_func, (uintptr_t)task, caller_addr);
     }
     return (bytehook_stub_t)task;
 }
@@ -191,7 +195,8 @@ int bh_core_unhook(bytehook_stub_t stub, uintptr_t caller_addr)
 
     bh_task_t *task = (bh_task_t *)stub;
     bh_task_manager_del(bh_core.task_mgr, task);
-    int status_code = bh_task_manager_unhook(bh_core.task_mgr, task, caller_addr);
+    int status_code = bh_task_manager_unhook(bh_core.task_mgr, task);
+    bh_recorder_add_unhook(status_code, (uintptr_t)task, caller_addr);
     bh_task_destroy(&task);
 
     return status_code;

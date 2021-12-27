@@ -32,4 +32,4 @@ void bh_task_manager_add(bh_task_manager_t *self, bh_task_t *task);
 void bh_task_manager_del(bh_task_manager_t *self, bh_task_t *task);
 
 void bh_task_manager_hook(bh_task_manager_t *self, bh_task_t *task);
-int bh_task_manager_unhook(bh_task_manager_t *self, bh_task_t *task, uintptr_t caller_addr);
+int bh_task_manager_unhook(bh_task_manager_t *self, bh_task_t *task);

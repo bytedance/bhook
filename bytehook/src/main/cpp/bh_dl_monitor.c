@@ -481,7 +481,7 @@ static int bh_dl_monitor_hook(void)
             (void *)bh_dl_monitor_proxy_dlopen,
             (BYTEHOOK_MODE_MANUAL == bh_core_get_mode()) ? bh_dl_monitor_proxy_dlopen_hooked : NULL,
             NULL,
-            0))) goto err;
+            (uintptr_t)(__builtin_return_address(0))))) goto err;
     }
 
     if(api_level >= __ANDROID_API_L__ && api_level <= __ANDROID_API_N_MR1__)
@@ -492,7 +492,7 @@ static int bh_dl_monitor_hook(void)
             (void *)bh_dl_monitor_proxy_android_dlopen_ext,
             (BYTEHOOK_MODE_MANUAL == bh_core_get_mode()) ? bh_dl_monitor_proxy_android_dlopen_ext_hooked : NULL,
             NULL,
-            0))) goto err;
+            (uintptr_t)(__builtin_return_address(0))))) goto err;
     }
 
     if(api_level >= __ANDROID_API_O__)
@@ -504,7 +504,7 @@ static int bh_dl_monitor_hook(void)
             (void *)bh_dl_monitor_proxy_loader_dlopen,
             (BYTEHOOK_MODE_MANUAL == bh_core_get_mode()) ? bh_dl_monitor_proxy_loader_dlopen_hooked : NULL,
             NULL,
-            0))) goto err;
+            (uintptr_t)(__builtin_return_address(0))))) goto err;
 
         if(NULL == (bh_dl_monitor_stub_loader_android_dlopen_ext = bh_core_hook_single(
             BH_CONST_BASENAME_DL,
@@ -513,7 +513,7 @@ static int bh_dl_monitor_hook(void)
             (void *)bh_dl_monitor_proxy_loader_android_dlopen_ext,
             (BYTEHOOK_MODE_MANUAL == bh_core_get_mode()) ? bh_dl_monitor_proxy_loader_android_dlopen_ext_hooked : NULL,
             NULL,
-            0))) goto err;
+            (uintptr_t)(__builtin_return_address(0))))) goto err;
     }
 
     if(api_level < __ANDROID_API_O__)
@@ -524,7 +524,7 @@ static int bh_dl_monitor_hook(void)
             (void *)bh_dl_monitor_proxy_dlclose,
             (BYTEHOOK_MODE_MANUAL == bh_core_get_mode()) ? bh_dl_monitor_proxy_dlclose_hooked : NULL,
             NULL,
-            0))) goto err;
+            (uintptr_t)(__builtin_return_address(0))))) goto err;
     }
     else
     {
@@ -535,7 +535,7 @@ static int bh_dl_monitor_hook(void)
             (void *)bh_dl_monitor_proxy_loader_dlclose,
             (BYTEHOOK_MODE_MANUAL == bh_core_get_mode()) ? bh_dl_monitor_proxy_loader_dlclose_hooked : NULL,
             NULL,
-            0))) goto err;
+            (uintptr_t)(__builtin_return_address(0))))) goto err;
     }
 
     return 0;

@@ -44,16 +44,35 @@ static void bh_jni_set_debug(JNIEnv *env, jobject thiz, jboolean debug)
     bytehook_set_debug((bool)debug);
 }
 
-static jstring bh_jni_get_records(JNIEnv *env, jobject thiz)
+static jstring bh_jni_get_records(JNIEnv *env, jobject thiz, jint item_flags)
 {
     (void)thiz;
 
-    char *str = bytehook_get_records();
+    char *str = bytehook_get_records((uint32_t)item_flags);
     if(NULL == str) return NULL;
 
     jstring jstr = (*env)->NewStringUTF(env, str);
     free(str);
     return jstr;
+}
+
+static jstring bh_jni_get_arch(JNIEnv *env, jobject thiz)
+{
+    (void)thiz;
+
+#if defined(__arm__)
+    char *arch = "arm";
+#elif defined(__aarch64__)
+    char *arch = "arm64";
+#elif defined(__i386__)
+    char *arch = "x86";
+#elif defined(__x86_64__)
+    char *arch = "x86_64";
+#else
+    char *arch = "unsupported";
+#endif
+
+    return (*env)->NewStringUTF(env, arch);
 }
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm,
@@ -73,7 +92,8 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm,
     JNINativeMethod m[] = {
         {"nativeInit", "(IZ)I", (void *)bh_jni_init},
         {"nativeSetDebug", "(Z)V", (void *)bh_jni_set_debug},
-        {"nativeGetRecords", "()Ljava/lang/String;", (void *)bh_jni_get_records}
+        {"nativeGetRecords", "(I)Ljava/lang/String;", (void *)bh_jni_get_records},
+        {"nativeGetArch", "()Ljava/lang/String;", (void *)bh_jni_get_arch}
     };
     if(__predict_false(0 != (*env)->RegisterNatives(env, cls, m, sizeof(m) / sizeof(m[0])))) return JNI_ERR;
 

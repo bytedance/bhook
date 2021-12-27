@@ -45,8 +45,7 @@ static bh_task_t *bh_task_create(
     const char* sym_name,
     void *new_func,
     bytehook_hooked_t hooked,
-    void *hooked_arg,
-    uintptr_t caller_addr)
+    void *hooked_arg)
 {
     bh_task_t *self;
     if(NULL == (self = malloc(sizeof(bh_task_t)))) return NULL;
@@ -57,8 +56,7 @@ static bh_task_t *bh_task_create(
     self->new_func = new_func;
     self->hooked = hooked;
     self->hooked_arg = hooked_arg;
-    self->hook_caller_addr = caller_addr;
-    self->unhook_caller_addr = 0;
+    self->hook_status_code = BYTEHOOK_STATUS_CODE_MAX;
     self->manual_orig_func = BH_TASK_ORIG_FUNC_UNSET;
 
     return self;
@@ -70,11 +68,10 @@ bh_task_t *bh_task_create_single(
     const char *sym_name,
     void *new_func,
     bytehook_hooked_t hooked,
-    void *hooked_arg,
-    uintptr_t caller_addr)
+    void *hooked_arg)
 {
     bh_task_t *self;
-    if(NULL == (self = bh_task_create(callee_path_name, sym_name, new_func, hooked, hooked_arg, caller_addr))) return NULL;
+    if(NULL == (self = bh_task_create(callee_path_name, sym_name, new_func, hooked, hooked_arg))) return NULL;
     self->type = BH_TASK_TYPE_SINGLE;
     self->status = BH_TASK_STATUS_UNFINISHED;
     self->caller_path_name = (NULL != caller_path_name ? strdup(caller_path_name) : NULL);
@@ -88,11 +85,10 @@ bh_task_t *bh_task_create_partial(
     const char *sym_name,
     void *new_func,
     bytehook_hooked_t hooked,
-    void *hooked_arg,
-    uintptr_t caller_addr)
+    void *hooked_arg)
 {
     bh_task_t *self;
-    if(NULL == (self = bh_task_create(callee_path_name, sym_name, new_func, hooked, hooked_arg, caller_addr))) return NULL;
+    if(NULL == (self = bh_task_create(callee_path_name, sym_name, new_func, hooked, hooked_arg))) return NULL;
     self->type = BH_TASK_TYPE_PARTIAL;
     self->status = BH_TASK_STATUS_LONGTERM;
     self->caller_path_name = NULL;
@@ -106,11 +102,10 @@ bh_task_t *bh_task_create_all(
     const char *sym_name,
     void *new_func,
     bytehook_hooked_t hooked,
-    void *hooked_arg,
-    uintptr_t caller_addr)
+    void *hooked_arg)
 {
     bh_task_t *self;
-    if(NULL == (self = bh_task_create(callee_path_name, sym_name, new_func, hooked, hooked_arg, caller_addr))) return NULL;
+    if(NULL == (self = bh_task_create(callee_path_name, sym_name, new_func, hooked, hooked_arg))) return NULL;
     self->type = BH_TASK_TYPE_ALL;
     self->status = BH_TASK_STATUS_LONGTERM;
     self->caller_path_name = NULL;
@@ -207,9 +202,8 @@ void bh_task_hook_elf(bh_task_t *self, bh_elf_t *elf)
     bh_task_hook_or_unhook(self, elf);
 }
 
-int bh_task_unhook(bh_task_t *self, uintptr_t caller_addr)
+int bh_task_unhook(bh_task_t *self)
 {
-    self->unhook_caller_addr = caller_addr;
     self->status = BH_TASK_STATUS_UNHOOKING;
 
     if(BYTEHOOK_MODE_MANUAL == bh_core_get_mode())
@@ -262,20 +256,9 @@ void bh_task_hooked(bh_task_t *self, int status_code, const char *caller_path_na
     if(BH_TASK_TYPE_SINGLE == self->type && NULL == caller_path_name)
         caller_path_name = self->caller_path_name;
 
-    // do record
-    if(BYTEHOOK_STATUS_CODE_ORIG_ADDR != status_code)
-    {
-        if(BH_TASK_STATUS_UNHOOKING != self->status)
-        {
-            if(0 != self->hook_caller_addr)
-                bh_recorder_add_hook(status_code, (uintptr_t)orig_func, caller_path_name, self->sym_name, (uintptr_t)self->new_func, (uintptr_t)self, self->hook_caller_addr);
-        }
-        else
-        {
-            if(0 != self->unhook_caller_addr)
-                bh_recorder_add_unhook(status_code, caller_path_name, (uintptr_t)self, self->unhook_caller_addr);
-        }
-    }
+    // save hook-status-code for single-task
+    if(BYTEHOOK_STATUS_CODE_ORIG_ADDR != status_code && BH_TASK_TYPE_SINGLE == self->type && BH_TASK_STATUS_UNHOOKING != self->status)
+        self->hook_status_code = status_code;
 
     // do callback
     if(NULL != self->hooked && BH_TASK_STATUS_UNHOOKING != self->status)

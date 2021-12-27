@@ -103,14 +103,14 @@ void bytehook_set_debug(bool debug)
     bh_core_set_debug(debug);
 }
 
-char *bytehook_get_records(void)
+char *bytehook_get_records(uint32_t item_flags)
 {
-    return bh_recorder_get();
+    return bh_recorder_get(item_flags);
 }
 
-void bytehook_dump_records(int fd)
+void bytehook_dump_records(int fd, uint32_t item_flags)
 {
-    bh_recorder_dump(fd);
+    bh_recorder_dump(fd, item_flags);
 }
 
 void *bytehook_get_prev_func(void *func)

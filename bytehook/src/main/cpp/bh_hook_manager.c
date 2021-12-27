@@ -530,14 +530,14 @@ static bool bh_hook_manager_hook_cfi(bh_hook_manager_t *self, bh_elf_t *caller_e
     bool ok;
 
     ok = false;
-    bh_task_t *task = bh_task_create_single(caller_elf->pathname, NULL, BH_CONST_SYM_CFI_SLOWPATH, (void *)bh_hook_manager_cfi_slowpath, bh_hook_manager_cfi_hooked, (void *)&ok, 0);
+    bh_task_t *task = bh_task_create_single(caller_elf->pathname, NULL, BH_CONST_SYM_CFI_SLOWPATH, (void *)bh_hook_manager_cfi_slowpath, bh_hook_manager_cfi_hooked, (void *)&ok);
     if(NULL == task) return false;
     bh_hook_manager_hook_impl(self, task, caller_elf);
     bh_task_destroy(&task);
     if(!ok) return false;
 
     ok = false;
-    task = bh_task_create_single(caller_elf->pathname, NULL, BH_CONST_SYM_CFI_SLOWPATH_DIAG, (void *)bh_hook_manager_cfi_slowpath_diag, bh_hook_manager_cfi_hooked, (void *)&ok, 0);
+    task = bh_task_create_single(caller_elf->pathname, NULL, BH_CONST_SYM_CFI_SLOWPATH_DIAG, (void *)bh_hook_manager_cfi_slowpath_diag, bh_hook_manager_cfi_hooked, (void *)&ok);
     if(NULL == task) return false;
     bh_hook_manager_hook_impl(self, task, caller_elf);
     bh_task_destroy(&task);

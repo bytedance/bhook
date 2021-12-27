@@ -72,6 +72,7 @@
 #define BYTEHOOK_STATUS_CODE_CFI_HOOK_FAILED     22
 #define BYTEHOOK_STATUS_CODE_ORIG_ADDR           23
 #define BYTEHOOK_STATUS_CODE_INITERR_CFI         24
+#define BYTEHOOK_STATUS_CODE_MAX                 255
 
 #define BYTEHOOK_MODE_AUTOMATIC 0
 #define BYTEHOOK_MODE_MANUAL    1
@@ -126,8 +127,17 @@ int bytehook_unhook(bytehook_stub_t stub);
 void bytehook_set_debug(bool debug);
 
 // get operation records
-char *bytehook_get_records(void);
-void bytehook_dump_records(int fd);
+#define BYTEHOOK_RECORD_ITEM_ALL             0xFF // 0b11111111
+#define BYTEHOOK_RECORD_ITEM_TIMESTAMP       (1 << 0)
+#define BYTEHOOK_RECORD_ITEM_CALLER_LIB_NAME (1 << 1)
+#define BYTEHOOK_RECORD_ITEM_OP              (1 << 2)
+#define BYTEHOOK_RECORD_ITEM_LIB_NAME        (1 << 3)
+#define BYTEHOOK_RECORD_ITEM_SYM_NAME        (1 << 4)
+#define BYTEHOOK_RECORD_ITEM_NEW_ADDR        (1 << 5)
+#define BYTEHOOK_RECORD_ITEM_ERRNO           (1 << 6)
+#define BYTEHOOK_RECORD_ITEM_STUB            (1 << 7)
+char *bytehook_get_records(uint32_t item_flags);
+void bytehook_dump_records(int fd, uint32_t item_flags);
 
 // for internal use
 void *bytehook_get_prev_func(void *func);
