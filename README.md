@@ -170,7 +170,9 @@ Notice:
 
 ## Contributing
 
-[ByteHook Contributing Guide](CONTRIBUTING.md)
+* [Code of Conduct](CODE_OF_CONDUCT.md)
+* [Contributing Guide](CONTRIBUTING.md)
+* [Reporting Security vulnerabilities](SECURITY.md)
 
 
 ## License

@@ -170,7 +170,9 @@ int bytehook_unhook(bytehook_stub_t stub);
 
 ## 贡献
 
-[ByteHook Contributing Guide](CONTRIBUTING.md)
+* [Code of Conduct](CODE_OF_CONDUCT.md)
+* [Contributing Guide](CONTRIBUTING.md)
+* [Reporting Security vulnerabilities](SECURITY.md)
 
 
 ## 许可证
