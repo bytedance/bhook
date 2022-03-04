@@ -28,6 +28,8 @@ There are 2 main branches:
 
 ## Pull Requests
 
+**If possible, always create an issue first where you can describe your problem or feature request. We can also communicate in this issue. Then you can link to that issue in the pull request.**
+
 Please make sure the following is done when submitting a pull request:
 
 1. Fork the repo and create your branch from `main`.
