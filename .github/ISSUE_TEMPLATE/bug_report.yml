@@ -9,7 +9,7 @@ body:
       value: |
         ## Notice
 
-        1. Please follow the [Code of Conduct](https://github.com/bytedance/bhook/blob/master/CODE_OF_CONDUCT.md) that this project adheres to.
+        1. Please follow the [Code of Conduct](https://github.com/bytedance/bhook/blob/main/CODE_OF_CONDUCT.md) that this project adheres to.
         2. Please test using [the latest release](https://github.com/bytedance/bhook/releases) to make sure your issue has not already been fixed.
         3. Before submitting a bug, please make sure the issue hasn't been already addressed by searching through [the existing and past issues](https://github.com/bytedance/bhook/issues?q=is%3Aissue+sort%3Acreated-desc+).
 

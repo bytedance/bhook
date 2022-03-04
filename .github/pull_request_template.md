@@ -1,6 +1,6 @@
 <!-- Thank you for submitting a Pull Request. Please:
 * Read our Pull Request guidelines:
-  https://github.com/bytedance/bhook/blob/master/CONTRIBUTING.md
+  https://github.com/bytedance/bhook/blob/main/CONTRIBUTING.md
 * Associate an issue with the Pull Request.
 * Ensure that the code is up-to-date with the `main` branch.
 * Include a description of the proposed changes and how to test them.
