@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Questions, Help and Discussions
+  - name: Questions and Discussions
     url: https://github.com/bytedance/bhook/discussions
-    about: Looking for help and discuss general questions.
+    about: Looking for help. Discuss general issues.
