@@ -202,6 +202,12 @@ int bh_core_unhook(bytehook_stub_t stub, uintptr_t caller_addr)
     return status_code;
 }
 
+int bh_core_add_ignore(const char *caller_path_name)
+{
+    int r = bh_elf_manager_add_ignore(bh_core.elf_mgr, caller_path_name);
+    return 0 == r ? 0 : BYTEHOOK_STATUS_CODE_IGNORE;
+}
+
 void bh_core_set_debug(bool debug)
 {
     bh_log_set_debug(debug);

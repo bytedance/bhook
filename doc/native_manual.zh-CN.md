@@ -27,6 +27,17 @@ void bytehook_set_debug(bool debug);
 
 作用和 Java 层 `setDebug()` 函数相同。
 
+
+## 增加全局忽略的动态库
+
+```C++
+int bytehook_add_ignore(const char *caller_path_name);
+```
+
+* 返回 `0` 表示成功，`非 0` 表示失败。
+* 我们可能需要全局的忽略某些动态库，例如某些来自第三方的加固过的动态库，可能包含某些未知的防护错误，对这些动态库执行 hook 可能引起未知的问题。包括 ByteHook 内部对 `dlopen` 和 `dlclose` 的 hook 也不能进行。这时候你可以把这些动态库加入到 ignored 列表中。
+
+
 ## hook
 
 hook 执行后返回的存根（stub）的定义，用于后续调用 unhook：

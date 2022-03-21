@@ -73,6 +73,8 @@ bytehook_stub_t bh_core_hook_all(
 
 int bh_core_unhook(bytehook_stub_t stub, uintptr_t caller_addr);
 
+int bh_core_add_ignore(const char *caller_path_name);
+
 void bh_core_set_debug(bool debug);
 
 void *bh_core_get_prev_func(void *func);

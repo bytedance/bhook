@@ -42,6 +42,14 @@
 #include "bh_log.h"
 #include "bh_dl_monitor.h"
 
+// block list
+typedef struct bh_elf_manager_block
+{
+    char *caller_path_name;
+    TAILQ_ENTRY(bh_elf_manager_block,) link;
+} bh_elf_manager_block_t;
+typedef TAILQ_HEAD(bh_elf_manager_block_list, bh_elf_manager_block,) bh_elf_manager_block_list_t;
+
 // RB-tree for ELF info (bh_elf_t)
 static __inline__ int bh_elf_cmp(bh_elf_t *a, bh_elf_t *b)
 {
@@ -63,6 +71,8 @@ struct bh_elf_manager
     size_t           elfs_cnt;
     bh_elf_list_t    abandoned_elfs;
     pthread_rwlock_t elfs_lock;
+    bh_elf_manager_block_list_t blocklist;
+    pthread_mutex_t  blocklist_lock;
 };
 #pragma clang diagnostic pop
 
@@ -76,8 +86,73 @@ bh_elf_manager_t *bh_elf_manager_create(void)
     self->elfs_cnt = 0;
     TAILQ_INIT(&self->abandoned_elfs);
     pthread_rwlock_init(&self->elfs_lock, NULL);
+    TAILQ_INIT(&self->blocklist);
+    pthread_mutex_init(&self->blocklist_lock, NULL);
 
     return self;
+}
+
+int bh_elf_manager_add_ignore(bh_elf_manager_t *self, const char *caller_path_name)
+{
+    bh_elf_manager_block_t *block;
+    if(NULL == (block = calloc(1, sizeof(bh_elf_t)))) return -1;
+    if(NULL == (block->caller_path_name = strdup(caller_path_name)))
+    {
+        free(block);
+        return -1;
+    }
+
+    bh_elf_manager_block_t *tmp;
+    pthread_mutex_lock(&self->blocklist_lock);
+    TAILQ_FOREACH(tmp, &self->blocklist, link)
+    {
+        if(0 == strcmp(tmp->caller_path_name, caller_path_name))
+            break;
+    }
+    if(NULL == tmp)
+    {
+        TAILQ_INSERT_TAIL(&self->blocklist, block, link);
+        block = NULL;
+    }
+    pthread_mutex_unlock(&self->blocklist_lock);
+
+    if(NULL != block)
+    {
+        free(block->caller_path_name);
+        free(block);
+    }
+    return 0;
+}
+
+static bool bh_elf_manager_check_ignore(bh_elf_manager_t *self, const char *caller_path_name)
+{
+    bool result = true;
+    pthread_mutex_lock(&self->blocklist_lock);
+
+    bh_elf_manager_block_t *tmp;
+    TAILQ_FOREACH(tmp, &self->blocklist, link)
+    {
+        if('/' == caller_path_name[0] && '/' != tmp->caller_path_name[0])
+        {
+            if(bh_util_ends_with(caller_path_name, tmp->caller_path_name))
+                goto ignore;
+        }
+        else if('/' != caller_path_name[0] && '/' == tmp->caller_path_name[0])
+        {
+            if(bh_util_ends_with(tmp->caller_path_name, caller_path_name))
+                goto ignore;
+        }
+        else
+        {
+            if(0 == strcmp(caller_path_name, tmp->caller_path_name))
+                goto ignore;
+        }
+    }
+    result = false;
+
+ ignore:
+    pthread_mutex_unlock(&self->blocklist_lock);
+    return result;
 }
 
 static int bh_elf_manager_iterate_cb(struct dl_phdr_info *info, size_t size, void *arg)
@@ -91,6 +166,7 @@ static int bh_elf_manager_iterate_cb(struct dl_phdr_info *info, size_t size, voi
     // ignore invalid or unwanted ELF
     if(bh_util_ends_with(info->dlpi_name, BH_CONST_BASENAME_BYTEHOOK)) return 0;
     if(!bh_util_ends_with(info->dlpi_name, BH_CONST_BASENAME_APP_PROCESS) && !bh_util_ends_with(info->dlpi_name, ".so")) return 0;
+    if(bh_elf_manager_check_ignore(self, info->dlpi_name)) return 0;
 
     bh_elf_t elf_key = {.pathname = info->dlpi_name};
     bh_elf_t *elf = RB_FIND(bh_elf_tree, &self->elfs, &elf_key);

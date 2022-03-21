@@ -72,6 +72,7 @@
 #define BYTEHOOK_STATUS_CODE_CFI_HOOK_FAILED     22
 #define BYTEHOOK_STATUS_CODE_ORIG_ADDR           23
 #define BYTEHOOK_STATUS_CODE_INITERR_CFI         24
+#define BYTEHOOK_STATUS_CODE_IGNORE              25
 #define BYTEHOOK_STATUS_CODE_MAX                 255
 
 #define BYTEHOOK_MODE_AUTOMATIC 0
@@ -123,6 +124,8 @@ bytehook_stub_t bytehook_hook_all(
     void *hooked_arg);
 
 int bytehook_unhook(bytehook_stub_t stub);
+
+int bytehook_add_ignore(const char *caller_path_name);
 
 void bytehook_set_debug(bool debug);
 

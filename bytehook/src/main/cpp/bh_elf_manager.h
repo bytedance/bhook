@@ -29,6 +29,8 @@ typedef struct bh_elf_manager bh_elf_manager_t;
 
 bh_elf_manager_t *bh_elf_manager_create(void);
 
+int bh_elf_manager_add_ignore(bh_elf_manager_t *self, const char *caller_path_name);
+
 typedef void (*bh_elf_manager_post_add_cb_t)(bh_elf_t *elf, void *arg);
 void bh_elf_manager_refresh(bh_elf_manager_t *self, bool sync_clean, bh_elf_manager_post_add_cb_t cb, void *cb_arg);
 

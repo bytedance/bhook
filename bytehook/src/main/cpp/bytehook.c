@@ -98,6 +98,11 @@ int bytehook_unhook(bytehook_stub_t stub)
     return bh_core_unhook(stub, (uintptr_t)caller_addr);
 }
 
+int bytehook_add_ignore(const char *caller_path_name)
+{
+    return bh_core_add_ignore(caller_path_name);
+}
+
 void bytehook_set_debug(bool debug)
 {
     bh_core_set_debug(debug);

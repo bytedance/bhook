@@ -93,3 +93,12 @@ public static void setDebug(boolean debug);
 * 可以通过 `setDebug()` 随时开启 / 关闭 ByteHook 的调试日志。
 * 调试日志输出到 logcat，tag为：`bytehook_tag`。
 * 使用默认参数初始化时，ByteHook 默认关闭调试日志。
+
+## 增加全局忽略的动态库
+
+```java
+public static int addIgnore(String callerPathName);
+```
+
+* 返回 `0` 表示成功，`非 0` 表示失败。
+* 我们可能需要全局的忽略某些动态库，例如某些来自第三方的加固过的动态库，可能包含某些未知的防护错误，对这些动态库执行 hook 可能引起未知的问题。包括 ByteHook 内部对 `dlopen` 和 `dlclose` 的 hook 也不能进行。这时候你可以把这些动态库加入到 ignored 列表中。

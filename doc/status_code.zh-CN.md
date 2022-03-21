@@ -136,6 +136,10 @@ static void hooked_callback(bytehook_stub_t task_stub,
 
 初始化失败。原因是初始化 CFI 兜底保护机制失败。
 
+## 25
+
+通过 native `bytehook_add_ignore` 或 Java `addIgnore` 接口增加"全局忽略的动态库"失败。
+
 ## 100
 
 java 层错误。初始化时，`loadLibrary` 失败。

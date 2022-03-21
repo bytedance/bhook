@@ -1,4 +1,4 @@
-// Copyright (c) 2020-present, ByteDance, Inc.
+// Copyright (c) 2020-2021 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -68,6 +68,13 @@ public class ByteHook {
         }
 
         initCostMs = System.currentTimeMillis() - start;
+        return initStatus;
+    }
+
+    public static int addIgnore(String callerPathName) {
+        if (initStatus == 0) {
+            return nativeAddIgnore(callerPathName);
+        }
         return initStatus;
     }
 
@@ -236,6 +243,8 @@ public class ByteHook {
     }
 
     private static native int nativeInit(int mode, boolean debug);
+
+    private static native int nativeAddIgnore(String callerPathName);
 
     private static native void nativeSetDebug(boolean debug);
 

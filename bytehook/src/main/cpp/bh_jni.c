@@ -36,6 +36,23 @@ static jint bh_jni_init(JNIEnv *env, jobject thiz, jint mode, jboolean debug)
     return bytehook_init((int)mode, (bool)debug);
 }
 
+static jint bh_jni_add_ignore(JNIEnv *env, jobject thiz, jstring caller_path_name)
+{
+    (void)env;
+    (void)thiz;
+
+    int r = BYTEHOOK_STATUS_CODE_IGNORE;
+    if(!caller_path_name) return r;
+
+    const char *c_caller_path_name;
+    if(NULL == (c_caller_path_name = (*env)->GetStringUTFChars(env, caller_path_name, 0))) goto clean;
+    r = bytehook_add_ignore(c_caller_path_name);
+
+ clean:
+    if(caller_path_name && c_caller_path_name) (*env)->ReleaseStringUTFChars(env, caller_path_name, c_caller_path_name);
+    return r;
+}
+
 static void bh_jni_set_debug(JNIEnv *env, jobject thiz, jboolean debug)
 {
     (void)env;
@@ -91,6 +108,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm,
 
     JNINativeMethod m[] = {
         {"nativeInit", "(IZ)I", (void *)bh_jni_init},
+        {"nativeAddIgnore", "(Ljava/lang/String;)I", (void *)bh_jni_add_ignore},
         {"nativeSetDebug", "(Z)V", (void *)bh_jni_set_debug},
         {"nativeGetRecords", "(I)Ljava/lang/String;", (void *)bh_jni_get_records},
         {"nativeGetArch", "()Ljava/lang/String;", (void *)bh_jni_get_arch}
