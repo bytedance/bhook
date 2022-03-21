@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 ByteDance, Inc.
+// Copyright (c) 2020-2022 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,99 +21,92 @@
 
 // Created by Kelun Cai (caikelun@bytedance.com) on 2020-06-02.
 
-#include <stdlib.h>
 #include <jni.h>
+#include <stdlib.h>
+
 #include "bytehook.h"
 
 #define BH_JNI_VERSION    JNI_VERSION_1_6
 #define BH_JNI_CLASS_NAME "com/bytedance/android/bytehook/ByteHook"
 
-static jint bh_jni_init(JNIEnv *env, jobject thiz, jint mode, jboolean debug)
-{
-    (void)env;
-    (void)thiz;
+static jint bh_jni_init(JNIEnv *env, jobject thiz, jint mode, jboolean debug) {
+  (void)env;
+  (void)thiz;
 
-    return bytehook_init((int)mode, (bool)debug);
+  return bytehook_init((int)mode, (bool)debug);
 }
 
-static jint bh_jni_add_ignore(JNIEnv *env, jobject thiz, jstring caller_path_name)
-{
-    (void)env;
-    (void)thiz;
+static jint bh_jni_add_ignore(JNIEnv *env, jobject thiz, jstring caller_path_name) {
+  (void)env;
+  (void)thiz;
 
-    int r = BYTEHOOK_STATUS_CODE_IGNORE;
-    if(!caller_path_name) return r;
+  int r = BYTEHOOK_STATUS_CODE_IGNORE;
+  if (!caller_path_name) return r;
 
-    const char *c_caller_path_name;
-    if(NULL == (c_caller_path_name = (*env)->GetStringUTFChars(env, caller_path_name, 0))) goto clean;
-    r = bytehook_add_ignore(c_caller_path_name);
+  const char *c_caller_path_name;
+  if (NULL == (c_caller_path_name = (*env)->GetStringUTFChars(env, caller_path_name, 0))) goto clean;
+  r = bytehook_add_ignore(c_caller_path_name);
 
- clean:
-    if(caller_path_name && c_caller_path_name) (*env)->ReleaseStringUTFChars(env, caller_path_name, c_caller_path_name);
-    return r;
+clean:
+  if (caller_path_name && c_caller_path_name)
+    (*env)->ReleaseStringUTFChars(env, caller_path_name, c_caller_path_name);
+  return r;
 }
 
-static void bh_jni_set_debug(JNIEnv *env, jobject thiz, jboolean debug)
-{
-    (void)env;
-    (void)thiz;
+static void bh_jni_set_debug(JNIEnv *env, jobject thiz, jboolean debug) {
+  (void)env;
+  (void)thiz;
 
-    bytehook_set_debug((bool)debug);
+  bytehook_set_debug((bool)debug);
 }
 
-static jstring bh_jni_get_records(JNIEnv *env, jobject thiz, jint item_flags)
-{
-    (void)thiz;
+static jstring bh_jni_get_records(JNIEnv *env, jobject thiz, jint item_flags) {
+  (void)thiz;
 
-    char *str = bytehook_get_records((uint32_t)item_flags);
-    if(NULL == str) return NULL;
+  char *str = bytehook_get_records((uint32_t)item_flags);
+  if (NULL == str) return NULL;
 
-    jstring jstr = (*env)->NewStringUTF(env, str);
-    free(str);
-    return jstr;
+  jstring jstr = (*env)->NewStringUTF(env, str);
+  free(str);
+  return jstr;
 }
 
-static jstring bh_jni_get_arch(JNIEnv *env, jobject thiz)
-{
-    (void)thiz;
+static jstring bh_jni_get_arch(JNIEnv *env, jobject thiz) {
+  (void)thiz;
 
 #if defined(__arm__)
-    char *arch = "arm";
+  char *arch = "arm";
 #elif defined(__aarch64__)
-    char *arch = "arm64";
+  char *arch = "arm64";
 #elif defined(__i386__)
-    char *arch = "x86";
+  char *arch = "x86";
 #elif defined(__x86_64__)
-    char *arch = "x86_64";
+  char *arch = "x86_64";
 #else
-    char *arch = "unsupported";
+  char *arch = "unsupported";
 #endif
 
-    return (*env)->NewStringUTF(env, arch);
+  return (*env)->NewStringUTF(env, arch);
 }
 
-JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm,
-                                  void *reserved)
-{
-    (void)reserved;
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
+  (void)reserved;
 
-    if(__predict_false(NULL == vm)) return JNI_ERR;
+  if (__predict_false(NULL == vm)) return JNI_ERR;
 
-    JNIEnv *env;
-    if(__predict_false(JNI_OK != (*vm)->GetEnv(vm, (void **)&env, BH_JNI_VERSION))) return JNI_ERR;
-    if(__predict_false(NULL == env || NULL == *env)) return JNI_ERR;
+  JNIEnv *env;
+  if (__predict_false(JNI_OK != (*vm)->GetEnv(vm, (void **)&env, BH_JNI_VERSION))) return JNI_ERR;
+  if (__predict_false(NULL == env || NULL == *env)) return JNI_ERR;
 
-    jclass cls;
-    if(__predict_false(NULL == (cls = (*env)->FindClass(env, BH_JNI_CLASS_NAME)))) return JNI_ERR;
+  jclass cls;
+  if (__predict_false(NULL == (cls = (*env)->FindClass(env, BH_JNI_CLASS_NAME)))) return JNI_ERR;
 
-    JNINativeMethod m[] = {
-        {"nativeInit", "(IZ)I", (void *)bh_jni_init},
-        {"nativeAddIgnore", "(Ljava/lang/String;)I", (void *)bh_jni_add_ignore},
-        {"nativeSetDebug", "(Z)V", (void *)bh_jni_set_debug},
-        {"nativeGetRecords", "(I)Ljava/lang/String;", (void *)bh_jni_get_records},
-        {"nativeGetArch", "()Ljava/lang/String;", (void *)bh_jni_get_arch}
-    };
-    if(__predict_false(0 != (*env)->RegisterNatives(env, cls, m, sizeof(m) / sizeof(m[0])))) return JNI_ERR;
+  JNINativeMethod m[] = {{"nativeInit", "(IZ)I", (void *)bh_jni_init},
+                         {"nativeAddIgnore", "(Ljava/lang/String;)I", (void *)bh_jni_add_ignore},
+                         {"nativeSetDebug", "(Z)V", (void *)bh_jni_set_debug},
+                         {"nativeGetRecords", "(I)Ljava/lang/String;", (void *)bh_jni_get_records},
+                         {"nativeGetArch", "()Ljava/lang/String;", (void *)bh_jni_get_arch}};
+  if (__predict_false(0 != (*env)->RegisterNatives(env, cls, m, sizeof(m) / sizeof(m[0])))) return JNI_ERR;
 
-    return BH_JNI_VERSION;
+  return BH_JNI_VERSION;
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 ByteDance, Inc.
+// Copyright (c) 2020-2022 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,38 +21,34 @@
 
 // Created by Kelun Cai (caikelun@bytedance.com) on 2020-06-02.
 
-#include <stddef.h>
-#include <stdint.h>
 #include "bh_sleb128.h"
 
-void bh_sleb128_decoder_init(bh_sleb128_decoder_t *self, uint8_t *data, size_t data_sz)
-{
-    self->cur = data;
-    self->end = data + data_sz;
+#include <stddef.h>
+#include <stdint.h>
+
+void bh_sleb128_decoder_init(bh_sleb128_decoder_t *self, uint8_t *data, size_t data_sz) {
+  self->cur = data;
+  self->end = data + data_sz;
 }
 
-int bh_sleb128_decoder_next(bh_sleb128_decoder_t *self, size_t *ret)
-{
-    size_t value = 0;
-    static const size_t size = 8 * sizeof(value);
-    size_t shift = 0;
-    uint8_t byte;
+int bh_sleb128_decoder_next(bh_sleb128_decoder_t *self, size_t *ret) {
+  size_t value = 0;
+  static const size_t size = 8 * sizeof(value);
+  size_t shift = 0;
+  uint8_t byte;
 
-    do
-    {
-        if(self->cur >= self->end)
-            return -1;
+  do {
+    if (self->cur >= self->end) return -1;
 
-        byte = *(self->cur)++;
-        value |= ((size_t)(byte & 127) << shift);
-        shift += 7;
-    } while(byte & 128);
+    byte = *(self->cur)++;
+    value |= ((size_t)(byte & 127) << shift);
+    shift += 7;
+  } while (byte & 128);
 
-    if(shift < size && (byte & 64))
-    {
-        value |= -((size_t)(1) << shift);
-    }
+  if (shift < size && (byte & 64)) {
+    value |= -((size_t)(1) << shift);
+  }
 
-    *ret = value;
-    return 0;
+  *ret = value;
+  return 0;
 }

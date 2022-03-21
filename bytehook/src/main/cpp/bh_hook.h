@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 ByteDance, Inc.
+// Copyright (c) 2020-2022 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,30 +22,29 @@
 // Created by Kelun Cai (caikelun@bytedance.com) on 2020-06-02.
 
 #pragma once
-#include <stdbool.h>
 #include <pthread.h>
+#include <stdbool.h>
+
 #include "queue.h"
 #include "tree.h"
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wpadded"
 
-typedef struct bh_hook_call
-{
-    void *func;
-    bool enabled;
-    uint32_t task_id;
-    SLIST_ENTRY(bh_hook_call,) link;
+typedef struct bh_hook_call {
+  void *func;
+  bool enabled;
+  uint32_t task_id;
+  SLIST_ENTRY(bh_hook_call, ) link;
 } bh_hook_call_t;
-typedef SLIST_HEAD(bh_hook_call_list, bh_hook_call,) bh_hook_call_list_t;
+typedef SLIST_HEAD(bh_hook_call_list, bh_hook_call, ) bh_hook_call_list_t;
 
-typedef struct bh_hook
-{
-    void *got_addr;
-    void *orig_func;
-    bh_hook_call_list_t running_list;
-    pthread_mutex_t running_list_lock;
-    RB_ENTRY(bh_hook) link;
+typedef struct bh_hook {
+  void *got_addr;
+  void *orig_func;
+  bh_hook_call_list_t running_list;
+  pthread_mutex_t running_list_lock;
+  RB_ENTRY(bh_hook) link;
 } bh_hook_t;
 
 #pragma clang diagnostic pop

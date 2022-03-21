@@ -49,4 +49,5 @@ android {
     }
 }
 
+apply from: rootProject.file('gradle/check.gradle')
 apply from: rootProject.file('gradle/publish.gradle')

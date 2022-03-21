@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 ByteDance, Inc.
+// Copyright (c) 2020-2022 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,13 +21,14 @@
 
 // Created by Kelun Cai (caikelun@bytedance.com) on 2020-06-02.
 
-#include <stdbool.h>
-#include <android/log.h>
 #include "bh_log.h"
+
+#include <android/log.h>
+#include <stdbool.h>
 
 android_LogPriority bh_log_priority = ANDROID_LOG_SILENT;
 
-void bh_log_set_debug(bool debug)
-{
-    __atomic_store_n((android_LogPriority *)&bh_log_priority, (debug ? ANDROID_LOG_INFO : ANDROID_LOG_SILENT), __ATOMIC_SEQ_CST);
+void bh_log_set_debug(bool debug) {
+  __atomic_store_n((android_LogPriority *)&bh_log_priority, (debug ? ANDROID_LOG_INFO : ANDROID_LOG_SILENT),
+                   __ATOMIC_SEQ_CST);
 }

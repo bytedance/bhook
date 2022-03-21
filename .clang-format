@@ -1,0 +1,11 @@
+---
+BasedOnStyle: Google
+---
+
+Language: Cpp
+
+AlignConsecutiveMacros: true
+AllowShortFunctionsOnASingleLine: Empty
+ColumnLimit: 110
+IndentExternBlock: NoIndent
+TypenameMacros: ['ElfW']

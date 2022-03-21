@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 ByteDance, Inc.
+// Copyright (c) 2020-2022 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,23 +21,25 @@
 
 // Created by Kelun Cai (caikelun@bytedance.com) on 2020-06-02.
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <inttypes.h>
+#include "bh_dl_iterate.h"
+
+#include <android/api-level.h>
 #include <ctype.h>
-#include <elf.h>
-#include <link.h>
 #include <dlfcn.h>
+#include <elf.h>
+#include <inttypes.h>
+#include <link.h>
+#include <pthread.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <pthread.h>
-#include <android/api-level.h>
-#include "bh_dl_iterate.h"
+
+#include "bh_const.h"
 #include "bh_dl.h"
 #include "bh_linker.h"
-#include "bh_util.h"
-#include "bh_const.h"
 #include "bh_log.h"
+#include "bh_util.h"
 
 /*
  * ====================================================================
@@ -58,100 +60,92 @@
 
 extern __attribute((weak)) int dl_iterate_phdr(int (*)(struct dl_phdr_info *, size_t, void *), void *);
 
-static int bh_dl_iterate_by_linker_cb(struct dl_phdr_info *info, size_t size, void *arg)
-{
-    // ignore invalid ELF
-    if(0 == info->dlpi_addr || NULL == info->dlpi_name || '\0' == info->dlpi_name[0]) return 0;
+static int bh_dl_iterate_by_linker_cb(struct dl_phdr_info *info, size_t size, void *arg) {
+  // ignore invalid ELF
+  if (0 == info->dlpi_addr || NULL == info->dlpi_name || '\0' == info->dlpi_name[0]) return 0;
+
+  // callback
+  uintptr_t *pkg = (uintptr_t *)arg;
+  int (*callback)(struct dl_phdr_info *, size_t, void *) =
+      (int (*)(struct dl_phdr_info *, size_t, void *)) * pkg++;
+  void *data = (void *)*pkg;
+  return callback(info, size, data);
+}
+
+static int bh_dl_iterate_by_linker(int (*callback)(struct dl_phdr_info *, size_t, void *), void *data) {
+  BH_LOG_INFO("DL iterate: iterate by dl_iterate_phdr");
+
+  if (NULL == dl_iterate_phdr) return -1;
+
+  int api_level = bh_util_get_api_level();
+
+  if (__ANDROID_API_L__ == api_level || __ANDROID_API_L_MR1__ == api_level) bh_linker_lock();
+  uintptr_t pkg[2] = {(uintptr_t)callback, (uintptr_t)data};
+  dl_iterate_phdr(bh_dl_iterate_by_linker_cb, pkg);
+  if (__ANDROID_API_L__ == api_level || __ANDROID_API_L_MR1__ == api_level) bh_linker_unlock();
+
+  return 0;
+}
+
+#if (defined(__arm__) || defined(__i386__)) && __ANDROID_API__ < __ANDROID_API_L__
+
+static uintptr_t bh_dl_iterate_get_min_vaddr(struct dl_phdr_info *info) {
+  uintptr_t min_vaddr = UINTPTR_MAX;
+  for (size_t i = 0; i < info->dlpi_phnum; i++) {
+    const ElfW(Phdr) *phdr = &(info->dlpi_phdr[i]);
+    if (PT_LOAD == phdr->p_type) {
+      if (min_vaddr > phdr->p_vaddr) min_vaddr = phdr->p_vaddr;
+    }
+  }
+  return min_vaddr;
+}
+
+static int bh_dl_iterate_by_maps(int (*callback)(struct dl_phdr_info *, size_t, void *), void *data) {
+  BH_LOG_INFO("DL iterate: iterate by maps");
+
+  FILE *maps = fopen("/proc/self/maps", "r");
+  if (NULL == maps) return 0;
+
+  char line[1024];
+  while (fgets(line, sizeof(line), maps)) {
+    // Try to find an ELF which loaded by linker. This is almost always correct in android 4.x.
+    uintptr_t base, offset;
+    if (2 != sscanf(line, "%" SCNxPTR "-%*" SCNxPTR " r-xp %" SCNxPTR " ", &base, &offset)) continue;
+    if (0 != offset) continue;
+    if (0 != memcmp((void *)base, ELFMAG, SELFMAG)) continue;
+
+    // get pathname
+    char *pathname = strchr(line, '/');
+    if (NULL == pathname) break;
+    bh_util_trim_ending(pathname);
+
+    ElfW(Ehdr) *ehdr = (ElfW(Ehdr) *)base;
+    struct dl_phdr_info info;
+    info.dlpi_name = pathname;
+    info.dlpi_phdr = (const ElfW(Phdr) *)(base + ehdr->e_phoff);
+    info.dlpi_phnum = ehdr->e_phnum;
+
+    // get load bias
+    uintptr_t min_vaddr = bh_dl_iterate_get_min_vaddr(&info);
+    if (UINTPTR_MAX == min_vaddr) continue;  // ignore invalid ELF
+    info.dlpi_addr = (ElfW(Addr))(base - min_vaddr);
 
     // callback
-    uintptr_t *pkg = (uintptr_t *)arg;
-    int (*callback)(struct dl_phdr_info *, size_t, void *) = (int (*)(struct dl_phdr_info *, size_t, void *))*pkg++;
-    void *data = (void *)*pkg;
-    return callback(info, size, data);
-}
+    if (0 != callback(&info, sizeof(struct dl_phdr_info), data)) break;
+  }
 
-static int bh_dl_iterate_by_linker(int (*callback)(struct dl_phdr_info *, size_t, void *), void *data)
-{
-    BH_LOG_INFO("DL iterate: iterate by dl_iterate_phdr");
-
-    if(NULL == dl_iterate_phdr) return -1;
-
-    int api_level = bh_util_get_api_level();
-
-    if(__ANDROID_API_L__ == api_level || __ANDROID_API_L_MR1__ == api_level) bh_linker_lock();
-    uintptr_t pkg[2] = {(uintptr_t)callback, (uintptr_t)data};
-    dl_iterate_phdr(bh_dl_iterate_by_linker_cb, pkg);
-    if(__ANDROID_API_L__ == api_level || __ANDROID_API_L_MR1__ == api_level) bh_linker_unlock();
-
-    return 0;
-}
-
-#if (defined(__arm__) || defined(__i386__)) && __ANDROID_API__ < __ANDROID_API_L__
-
-static uintptr_t bh_dl_iterate_get_min_vaddr(struct dl_phdr_info *info)
-{
-    uintptr_t min_vaddr = UINTPTR_MAX;
-    for(size_t i = 0; i < info->dlpi_phnum; i++)
-    {
-        const ElfW(Phdr) *phdr = &(info->dlpi_phdr[i]);
-        if(PT_LOAD == phdr->p_type)
-        {
-            if(min_vaddr > phdr->p_vaddr) min_vaddr = phdr->p_vaddr;
-        }
-    }
-    return min_vaddr;
-}
-
-static int bh_dl_iterate_by_maps(int (*callback)(struct dl_phdr_info *, size_t, void *), void *data)
-{
-    BH_LOG_INFO("DL iterate: iterate by maps");
-
-    FILE *maps = fopen("/proc/self/maps", "r");
-    if(NULL == maps) return 0;
-
-    char line[1024];
-    while(fgets(line, sizeof(line), maps))
-    {
-        // Try to find an ELF which loaded by linker. This is almost always correct in android 4.x.
-        uintptr_t base, offset;
-        if(2 != sscanf(line, "%"SCNxPTR"-%*"SCNxPTR" r-xp %"SCNxPTR" ", &base, &offset)) continue;
-        if(0 != offset) continue;
-        if(0 != memcmp((void *)base, ELFMAG, SELFMAG)) continue;
-
-        // get pathname
-        char *pathname = strchr(line, '/');
-        if(NULL == pathname) break;
-        bh_util_trim_ending(pathname);
-
-        ElfW(Ehdr) *ehdr = (ElfW(Ehdr) *)base;
-        struct dl_phdr_info info;
-        info.dlpi_name = pathname;
-        info.dlpi_phdr = (const ElfW(Phdr) *)(base + ehdr->e_phoff);
-        info.dlpi_phnum = ehdr->e_phnum;
-
-        // get load bias
-        uintptr_t min_vaddr = bh_dl_iterate_get_min_vaddr(&info);
-        if(UINTPTR_MAX == min_vaddr) continue; // ignore invalid ELF
-        info.dlpi_addr = (ElfW(Addr))(base - min_vaddr);
-
-        // callback
-        if(0 != callback(&info, sizeof(struct dl_phdr_info), data)) break;
-    }
-
-    fclose(maps);
-    return 0;
+  fclose(maps);
+  return 0;
 }
 
 #endif
 
-int bh_dl_iterate(int (*callback)(struct dl_phdr_info *, size_t, void *), void *data)
-{
-    // iterate by /proc/self/maps in Android 4.x (Android 4.x only supports arm32 and x86)
+int bh_dl_iterate(int (*callback)(struct dl_phdr_info *, size_t, void *), void *data) {
+  // iterate by /proc/self/maps in Android 4.x (Android 4.x only supports arm32 and x86)
 #if (defined(__arm__) || defined(__i386__)) && __ANDROID_API__ < __ANDROID_API_L__
-    if(bh_util_get_api_level() < __ANDROID_API_L__)
-        return bh_dl_iterate_by_maps(callback, data);
+  if (bh_util_get_api_level() < __ANDROID_API_L__) return bh_dl_iterate_by_maps(callback, data);
 #endif
 
-    // iterate by dl_iterate_phdr()
-    return bh_dl_iterate_by_linker(callback, data);
+  // iterate by dl_iterate_phdr()
+  return bh_dl_iterate_by_linker(callback, data);
 }

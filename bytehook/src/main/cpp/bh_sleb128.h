@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 ByteDance, Inc.
+// Copyright (c) 2020-2022 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,10 +25,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef struct
-{
-    uint8_t  *cur;
-    uint8_t  *end;
+typedef struct {
+  uint8_t *cur;
+  uint8_t *end;
 } bh_sleb128_decoder_t;
 
 void bh_sleb128_decoder_init(bh_sleb128_decoder_t *self, uint8_t *data, size_t data_sz);

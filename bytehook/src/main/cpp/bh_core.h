@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 ByteDance, Inc.
+// Copyright (c) 2020-2022 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,20 +23,20 @@
 
 #pragma once
 #include <stdbool.h>
-#include "bytehook.h"
+
 #include "bh_elf_manager.h"
-#include "bh_task_manager.h"
 #include "bh_hook_manager.h"
+#include "bh_task_manager.h"
+#include "bytehook.h"
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wpadded"
-typedef struct
-{
-    int init_status;
-    int mode;
-    bh_task_manager_t *task_mgr;
-    bh_hook_manager_t *hook_mgr;
-    bh_elf_manager_t  *elf_mgr;
+typedef struct {
+  int init_status;
+  int mode;
+  bh_task_manager_t *task_mgr;
+  bh_hook_manager_t *hook_mgr;
+  bh_elf_manager_t *elf_mgr;
 } bh_core_t;
 #pragma clang diagnostic pop
 
@@ -44,32 +44,17 @@ bh_core_t *bh_core_global(void);
 
 int bh_core_init(int mode, bool debug);
 
-bytehook_stub_t bh_core_hook_single(
-    const char *caller_path_name,
-    const char *callee_path_name,
-    const char *sym_name,
-    void *new_func,
-    bytehook_hooked_t hooked,
-    void *hooked_arg,
-    uintptr_t caller_addr);
+bytehook_stub_t bh_core_hook_single(const char *caller_path_name, const char *callee_path_name,
+                                    const char *sym_name, void *new_func, bytehook_hooked_t hooked,
+                                    void *hooked_arg, uintptr_t caller_addr);
 
-bytehook_stub_t bh_core_hook_partial(
-    bytehook_caller_allow_filter_t caller_allow_filter,
-    void *caller_allow_filter_arg,
-    const char *callee_path_name,
-    const char *sym_name,
-    void *new_func,
-    bytehook_hooked_t hooked,
-    void *hooked_arg,
-    uintptr_t caller_addr);
+bytehook_stub_t bh_core_hook_partial(bytehook_caller_allow_filter_t caller_allow_filter,
+                                     void *caller_allow_filter_arg, const char *callee_path_name,
+                                     const char *sym_name, void *new_func, bytehook_hooked_t hooked,
+                                     void *hooked_arg, uintptr_t caller_addr);
 
-bytehook_stub_t bh_core_hook_all(
-    const char *callee_path_name,
-    const char *sym_name,
-    void *new_func,
-    bytehook_hooked_t hooked,
-    void *hooked_arg,
-    uintptr_t caller_addr);
+bytehook_stub_t bh_core_hook_all(const char *callee_path_name, const char *sym_name, void *new_func,
+                                 bytehook_hooked_t hooked, void *hooked_arg, uintptr_t caller_addr);
 
 int bh_core_unhook(bytehook_stub_t stub, uintptr_t caller_addr);
 
@@ -85,12 +70,6 @@ void bh_core_pop_stack(void *return_address);
 
 int bh_core_get_mode(void);
 
-void bh_core_add_dlopen_callback(
-    bytehook_pre_dlopen_t pre,
-    bytehook_post_dlopen_t post,
-    void *data);
+void bh_core_add_dlopen_callback(bytehook_pre_dlopen_t pre, bytehook_post_dlopen_t post, void *data);
 
-void bh_core_del_dlopen_callback(
-    bytehook_pre_dlopen_t pre,
-    bytehook_post_dlopen_t post,
-    void *data);
+void bh_core_del_dlopen_callback(bytehook_pre_dlopen_t pre, bytehook_post_dlopen_t post, void *data);

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 ByteDance, Inc.
+// Copyright (c) 2020-2022 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,22 +22,37 @@
 // Created by Kelun Cai (caikelun@bytedance.com) on 2020-06-02.
 
 #pragma once
+#include <android/log.h>
 #include <stdarg.h>
 #include <stdbool.h>
-#include <android/log.h>
 
 extern android_LogPriority bh_log_priority;
 
-#define BH_LOG_TAG  "bytehook_tag"
+#define BH_LOG_TAG "bytehook_tag"
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 
-#define BH_LOG_INFO(fmt, ...)  do{if(bh_log_priority <= ANDROID_LOG_INFO)  __android_log_print(ANDROID_LOG_INFO,  BH_LOG_TAG, fmt, ##__VA_ARGS__);}while(0)
-#define BH_LOG_WARN(fmt, ...)  do{if(bh_log_priority <= ANDROID_LOG_WARN)  __android_log_print(ANDROID_LOG_WARN,  BH_LOG_TAG, fmt, ##__VA_ARGS__);}while(0)
-#define BH_LOG_ERROR(fmt, ...) do{if(bh_log_priority <= ANDROID_LOG_ERROR) __android_log_print(ANDROID_LOG_ERROR, BH_LOG_TAG, fmt, ##__VA_ARGS__);}while(0)
+#define BH_LOG_INFO(fmt, ...)                                                \
+  do {                                                                       \
+    if (bh_log_priority <= ANDROID_LOG_INFO)                                 \
+      __android_log_print(ANDROID_LOG_INFO, BH_LOG_TAG, fmt, ##__VA_ARGS__); \
+  } while (0)
+#define BH_LOG_WARN(fmt, ...)                                                \
+  do {                                                                       \
+    if (bh_log_priority <= ANDROID_LOG_WARN)                                 \
+      __android_log_print(ANDROID_LOG_WARN, BH_LOG_TAG, fmt, ##__VA_ARGS__); \
+  } while (0)
+#define BH_LOG_ERROR(fmt, ...)                                                \
+  do {                                                                        \
+    if (bh_log_priority <= ANDROID_LOG_ERROR)                                 \
+      __android_log_print(ANDROID_LOG_ERROR, BH_LOG_TAG, fmt, ##__VA_ARGS__); \
+  } while (0)
 
-#define BH_LOG_SHOW(fmt, ...)  do{__android_log_print(ANDROID_LOG_WARN, BH_LOG_TAG, fmt, ##__VA_ARGS__);}while(0)
+#define BH_LOG_SHOW(fmt, ...)                                              \
+  do {                                                                     \
+    __android_log_print(ANDROID_LOG_WARN, BH_LOG_TAG, fmt, ##__VA_ARGS__); \
+  } while (0)
 
 #pragma clang diagnostic pop
 

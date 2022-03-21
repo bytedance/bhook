@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 ByteDance, Inc.
+// Copyright (c) 2020-2022 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,7 @@
 // Created by Kelun Cai (caikelun@bytedance.com) on 2020-06-02.
 
 #pragma once
-#include <stddef.h>
 #include <link.h>
+#include <stddef.h>
 
 int bh_dl_iterate(int (*callback)(struct dl_phdr_info *, size_t, void *), void *data);

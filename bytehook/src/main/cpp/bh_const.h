@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 ByteDance, Inc.
+// Copyright (c) 2020-2022 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,17 +24,17 @@
 #pragma once
 
 #ifndef __LP64__
-#define BH_CONST_PATHNAME_LINKER               "/system/bin/linker"
-#define BH_CONST_BASENAME_LINKER               "linker"
-#define BH_CONST_BASENAME_APP_PROCESS          "app_process32"
+#define BH_CONST_PATHNAME_LINKER      "/system/bin/linker"
+#define BH_CONST_BASENAME_LINKER      "linker"
+#define BH_CONST_BASENAME_APP_PROCESS "app_process32"
 #else
-#define BH_CONST_PATHNAME_LINKER               "/system/bin/linker64"
-#define BH_CONST_BASENAME_LINKER               "linker64"
-#define BH_CONST_BASENAME_APP_PROCESS          "app_process64"
+#define BH_CONST_PATHNAME_LINKER      "/system/bin/linker64"
+#define BH_CONST_BASENAME_LINKER      "linker64"
+#define BH_CONST_BASENAME_APP_PROCESS "app_process64"
 #endif
 
-#define BH_CONST_BASENAME_DL                   "libdl.so"
-#define BH_CONST_BASENAME_BYTEHOOK             "libbytehook.so"
+#define BH_CONST_BASENAME_DL       "libdl.so"
+#define BH_CONST_BASENAME_BYTEHOOK "libbytehook.so"
 
 #define BH_CONST_SYM_DLCLOSE                   "dlclose"
 #define BH_CONST_SYM_LOADER_DLCLOSE            "__loader_dlclose"

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 ByteDance, Inc.
+// Copyright (c) 2020-2022 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,7 @@
 #pragma once
 
 #include <stdbool.h>
+
 #include "bytehook.h"
 
 typedef void (*bh_dl_monitor_post_dlopen_t)(void *arg);

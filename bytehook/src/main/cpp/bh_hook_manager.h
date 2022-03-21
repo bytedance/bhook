@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 ByteDance, Inc.
+// Copyright (c) 2020-2022 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,11 +22,12 @@
 // Created by Kelun Cai (caikelun@bytedance.com) on 2020-06-02.
 
 #pragma once
-#include <stdbool.h>
 #include <pthread.h>
-#include "queue.h"
+#include <stdbool.h>
+
 #include "bh_elf.h"
 #include "bh_task.h"
+#include "queue.h"
 
 typedef struct bh_hook_manager bh_hook_manager_t;
 

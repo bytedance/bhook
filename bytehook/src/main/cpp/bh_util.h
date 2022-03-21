@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 ByteDance, Inc.
+// Copyright (c) 2020-2022 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,34 +22,36 @@
 // Created by Kelun Cai (caikelun@bytedance.com) on 2020-06-02.
 
 #pragma once
-#include <stdint.h>
+#include <android/api-level.h>
+#include <errno.h>
+#include <inttypes.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <errno.h>
+#include <stdint.h>
 #include <time.h>
-#include <stdarg.h>
-#include <inttypes.h>
-#include <android/api-level.h>
 
 #if defined(__LP64__)
-#define BH_UTIL_PRIxADDR "016"PRIxPTR
+#define BH_UTIL_PRIxADDR "016" PRIxPTR
 #else
-#define BH_UTIL_PRIxADDR "08"PRIxPTR
+#define BH_UTIL_PRIxADDR "08" PRIxPTR
 #endif
 
-#define BH_UTIL_TEMP_FAILURE_RETRY(exp) ({  \
-    __typeof__(exp) _rc;                    \
-    do {                                    \
-        errno = 0;                          \
-        _rc = (exp);                        \
-    } while (_rc == -1 && errno == EINTR);  \
-    _rc; })
+#define BH_UTIL_TEMP_FAILURE_RETRY(exp)    \
+  ({                                       \
+    __typeof__(exp) _rc;                   \
+    do {                                   \
+      errno = 0;                           \
+      _rc = (exp);                         \
+    } while (_rc == -1 && errno == EINTR); \
+    _rc;                                   \
+  })
 
 int bh_util_set_addr_protect(void *addr, int prot);
 int bh_util_set_protect(void *start, void *end, int prot);
 
-bool bh_util_starts_with(const char *str, const char* start);
-bool bh_util_ends_with(const char* str, const char* ending);
+bool bh_util_starts_with(const char *str, const char *start);
+bool bh_util_ends_with(const char *str, const char *ending);
 
 size_t bh_util_trim_ending(char *start);
 

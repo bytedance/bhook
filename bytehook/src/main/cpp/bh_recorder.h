@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 ByteDance, Inc.
+// Copyright (c) 2020-2022 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-int bh_recorder_add_hook(int error_number, const char *lib_name, const char *sym_name, uintptr_t new_addr, uintptr_t stub, uintptr_t caller_addr);
+int bh_recorder_add_hook(int error_number, const char *lib_name, const char *sym_name, uintptr_t new_addr,
+                         uintptr_t stub, uintptr_t caller_addr);
 int bh_recorder_add_unhook(int error_number, uintptr_t stub, uintptr_t caller_addr);
 
 char *bh_recorder_get(uint32_t item_flags);

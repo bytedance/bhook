@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 ByteDance, Inc.
+// Copyright (c) 2020-2022 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,35 +25,32 @@
 
 #include "bh_trampo.h"
 
-__attribute__((naked)) void bh_trampo_template(void)
-{
-    __asm__
-    (
-        // Save caller-saved registers
-        "push  { r0 - r3, lr }     \n"
+__attribute__((naked)) void bh_trampo_template(void) {
+  __asm__(
+      // Save caller-saved registers
+      "push  { r0 - r3, lr }     \n"
 
-        // Call bh_trampo_push_stack()
-        "ldr   r0, .L_hook_ptr     \n"
-        "mov   r1, lr              \n"
-        "ldr   ip, .L_push_stack   \n"
-        "blx   ip                  \n"
+      // Call bh_trampo_push_stack()
+      "ldr   r0, .L_hook_ptr     \n"
+      "mov   r1, lr              \n"
+      "ldr   ip, .L_push_stack   \n"
+      "blx   ip                  \n"
 
-        // Save the hook function's address to IP register
-        "mov   ip, r0              \n"
+      // Save the hook function's address to IP register
+      "mov   ip, r0              \n"
 
-        // Restore caller-saved registers
-        "pop   { r0 - r3, lr }     \n"
+      // Restore caller-saved registers
+      "pop   { r0 - r3, lr }     \n"
 
-        // Call hook function
-        "bx    ip                  \n"
+      // Call hook function
+      "bx    ip                  \n"
 
-        "bh_trampo_data:"
-        ".global bh_trampo_data;"
-        ".L_push_stack:"
-        ".word 0;"
-        ".L_hook_ptr:"
-        ".word 0;"
-    );
+      "bh_trampo_data:"
+      ".global bh_trampo_data;"
+      ".L_push_stack:"
+      ".word 0;"
+      ".L_hook_ptr:"
+      ".word 0;");
 }
 
 #else

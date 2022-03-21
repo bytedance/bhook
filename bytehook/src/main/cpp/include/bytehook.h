@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 ByteDance, Inc.
+// Copyright (c) 2020-2022 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -46,6 +46,7 @@
 #define BYTEDANCE_BYTEHOOK_H 1
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #define BYTEHOOK_STATUS_CODE_OK                  0
 #define BYTEHOOK_STATUS_CODE_UNINIT              1
@@ -82,46 +83,26 @@
 extern "C" {
 #endif
 
-typedef void* bytehook_stub_t;
+typedef void *bytehook_stub_t;
 
-typedef void (*bytehook_hooked_t)(
-    bytehook_stub_t task_stub,
-    int status_code,
-    const char *caller_path_name,
-    const char *sym_name,
-    void *new_func,
-    void *prev_func,
-    void *arg);
+typedef void (*bytehook_hooked_t)(bytehook_stub_t task_stub, int status_code, const char *caller_path_name,
+                                  const char *sym_name, void *new_func, void *prev_func, void *arg);
 
-typedef bool (*bytehook_caller_allow_filter_t)(
-    const char *caller_path_name,
-    void *arg);
+typedef bool (*bytehook_caller_allow_filter_t)(const char *caller_path_name, void *arg);
 
 int bytehook_init(int mode, bool debug);
 
-bytehook_stub_t bytehook_hook_single(
-    const char *caller_path_name,
-    const char *callee_path_name,
-    const char *sym_name,
-    void *new_func,
-    bytehook_hooked_t hooked,
-    void *hooked_arg);
+bytehook_stub_t bytehook_hook_single(const char *caller_path_name, const char *callee_path_name,
+                                     const char *sym_name, void *new_func, bytehook_hooked_t hooked,
+                                     void *hooked_arg);
 
-bytehook_stub_t bytehook_hook_partial(
-    bytehook_caller_allow_filter_t caller_allow_filter,
-    void *caller_allow_filter_arg,
-    const char *callee_path_name,
-    const char *sym_name,
-    void *new_func,
-    bytehook_hooked_t hooked,
-    void *hooked_arg);
+bytehook_stub_t bytehook_hook_partial(bytehook_caller_allow_filter_t caller_allow_filter,
+                                      void *caller_allow_filter_arg, const char *callee_path_name,
+                                      const char *sym_name, void *new_func, bytehook_hooked_t hooked,
+                                      void *hooked_arg);
 
-bytehook_stub_t bytehook_hook_all(
-    const char *callee_path_name,
-    const char *sym_name,
-    void *new_func,
-    bytehook_hooked_t hooked,
-    void *hooked_arg);
+bytehook_stub_t bytehook_hook_all(const char *callee_path_name, const char *sym_name, void *new_func,
+                                  bytehook_hooked_t hooked, void *hooked_arg);
 
 int bytehook_unhook(bytehook_stub_t stub);
 
@@ -130,7 +111,7 @@ int bytehook_add_ignore(const char *caller_path_name);
 void bytehook_set_debug(bool debug);
 
 // get operation records
-#define BYTEHOOK_RECORD_ITEM_ALL             0xFF // 0b11111111
+#define BYTEHOOK_RECORD_ITEM_ALL             0xFF  // 0b11111111
 #define BYTEHOOK_RECORD_ITEM_TIMESTAMP       (1 << 0)
 #define BYTEHOOK_RECORD_ITEM_CALLER_LIB_NAME (1 << 1)
 #define BYTEHOOK_RECORD_ITEM_OP              (1 << 2)
@@ -154,24 +135,15 @@ void *bytehook_get_return_address(void);
 // for internal use
 int bytehook_get_mode(void);
 
-typedef void (*bytehook_pre_dlopen_t)(
-    const char *filename,
-    void *data);
+typedef void (*bytehook_pre_dlopen_t)(const char *filename, void *data);
 
-typedef void (*bytehook_post_dlopen_t)(
-    const char *filename,
-    int result, // 0: OK  -1: Failed
-    void *data);
+typedef void (*bytehook_post_dlopen_t)(const char *filename,
+                                       int result,  // 0: OK  -1: Failed
+                                       void *data);
 
-void bytehook_add_dlopen_callback(
-    bytehook_pre_dlopen_t pre,
-    bytehook_post_dlopen_t post,
-    void *data);
+void bytehook_add_dlopen_callback(bytehook_pre_dlopen_t pre, bytehook_post_dlopen_t post, void *data);
 
-void bytehook_del_dlopen_callback(
-    bytehook_pre_dlopen_t pre,
-    bytehook_post_dlopen_t post,
-    void *data);
+void bytehook_del_dlopen_callback(bytehook_pre_dlopen_t pre, bytehook_post_dlopen_t post, void *data);
 
 #ifdef __cplusplus
 }
@@ -181,29 +153,33 @@ void bytehook_del_dlopen_callback(
 #ifdef __cplusplus
 #define BYTEHOOK_CALL_PREV(func, ...) ((decltype(&(func)))bytehook_get_prev_func((void *)(func)))(__VA_ARGS__)
 #else
-#define BYTEHOOK_CALL_PREV(func, func_sig, ...) ((func_sig)bytehook_get_prev_func((void *)(func)))(__VA_ARGS__)
+#define BYTEHOOK_CALL_PREV(func, func_sig, ...) \
+  ((func_sig)bytehook_get_prev_func((void *)(func)))(__VA_ARGS__)
 #endif
 
 // get return address in hook-function
-#define BYTEHOOK_RETURN_ADDRESS() ((void *)(BYTEHOOK_MODE_AUTOMATIC == bytehook_get_mode() ? bytehook_get_return_address() : __builtin_return_address(0)))
+#define BYTEHOOK_RETURN_ADDRESS()                                                          \
+  ((void *)(BYTEHOOK_MODE_AUTOMATIC == bytehook_get_mode() ? bytehook_get_return_address() \
+                                                           : __builtin_return_address(0)))
 
 // pop stack in hook-function (for C/C++)
-#define BYTEHOOK_POP_STACK() do{if(BYTEHOOK_MODE_AUTOMATIC == bytehook_get_mode()) bytehook_pop_stack(__builtin_return_address(0));}while(0)
+#define BYTEHOOK_POP_STACK()                                                                             \
+  do {                                                                                                   \
+    if (BYTEHOOK_MODE_AUTOMATIC == bytehook_get_mode()) bytehook_pop_stack(__builtin_return_address(0)); \
+  } while (0)
 
 // pop stack in hook-function (for C++ only)
 #ifdef __cplusplus
 class BytehookStackScope {
-    public:
-        BytehookStackScope(void *return_address) : return_address_(return_address) {
-        }
+ public:
+  BytehookStackScope(void *return_address) : return_address_(return_address) {}
 
-        ~BytehookStackScope() {
-            if(BYTEHOOK_MODE_AUTOMATIC == bytehook_get_mode())
-                bytehook_pop_stack(return_address_);
-        }
+  ~BytehookStackScope() {
+    if (BYTEHOOK_MODE_AUTOMATIC == bytehook_get_mode()) bytehook_pop_stack(return_address_);
+  }
 
-    private:
-        void *return_address_;
+ private:
+  void *return_address_;
 };
 #define BYTEHOOK_STACK_SCOPE() BytehookStackScope __bytehook_stack_scope(__builtin_return_address(0))
 #endif
