@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <pthread.h>
+#include <errno.h>
 #include <android/api-level.h>
 #include "bytehook.h"
 #include "bh_dl_monitor.h"
@@ -109,9 +110,6 @@ typedef struct bh_dl_monitor_cb
 typedef TAILQ_HEAD(bh_dl_monitor_cb_queue, bh_dl_monitor_cb,) bh_dl_monitor_cb_queue_t;
 static bh_dl_monitor_cb_queue_t bh_dl_monitor_cbs = TAILQ_HEAD_INITIALIZER(bh_dl_monitor_cbs);
 static pthread_rwlock_t bh_dl_monitor_cbs_lock = PTHREAD_RWLOCK_INITIALIZER;
-
-// lock between "dlclose"(wrlock) and "read elf cache"(rdlock)
-static pthread_rwlock_t bh_dl_monitor_dlclose_lock = PTHREAD_RWLOCK_INITIALIZER;
 
 static void bh_dl_monitor_call_cb_pre(const char *filename)
 {
@@ -240,6 +238,40 @@ static void bh_dl_monitor_set_dlerror_msg(void)
 static void bh_dl_monitor_dlerror_msg_tls_dtor(void *buf)
 {
     if(NULL != buf) free(buf);
+}
+
+// lock between "dlclose"(wrlock) and "read elf cache"(rdlock)
+static pthread_rwlock_t bh_dl_monitor_dlclose_lock = PTHREAD_RWLOCK_INITIALIZER;
+static pthread_key_t bh_dl_monitor_dlclose_lock_state_tls_key;
+
+static int bh_dl_monitor_dlclose_wrlock(void)
+{
+    if(0 != (pthread_getspecific(bh_dl_monitor_dlclose_lock_state_tls_key)))
+        return EDEADLK;
+
+    int r = pthread_rwlock_wrlock(&bh_dl_monitor_dlclose_lock);
+    if(0 == r)
+    {
+        intptr_t count = (intptr_t)(pthread_getspecific(bh_dl_monitor_dlclose_lock_state_tls_key));
+        pthread_setspecific(bh_dl_monitor_dlclose_lock_state_tls_key, (void *)(count + 1));
+    }
+    return r;
+}
+
+void bh_dl_monitor_dlclose_rdlock(void)
+{
+    pthread_rwlock_rdlock(&bh_dl_monitor_dlclose_lock);
+
+    intptr_t count = (intptr_t)(pthread_getspecific(bh_dl_monitor_dlclose_lock_state_tls_key));
+    pthread_setspecific(bh_dl_monitor_dlclose_lock_state_tls_key, (void *)(count + 1));
+}
+
+void bh_dl_monitor_dlclose_unlock(void)
+{
+    pthread_rwlock_unlock(&bh_dl_monitor_dlclose_lock);
+
+    intptr_t count = (intptr_t)(pthread_getspecific(bh_dl_monitor_dlclose_lock_state_tls_key));
+    pthread_setspecific(bh_dl_monitor_dlclose_lock_state_tls_key, (void *)(count - 1));
 }
 
 // the dl-mutex recursive lock count
@@ -407,7 +439,7 @@ static int bh_dl_monitor_proxy_dlclose(void* handle)
 {
     bool wrlocked = false;
     if(!bh_dl_monitor_dlmutex_is_locked())
-        wrlocked = (0 == pthread_rwlock_wrlock(&bh_dl_monitor_dlclose_lock));
+        wrlocked = (0 == bh_dl_monitor_dlclose_wrlock());
 
     // call dlclose()
     bh_dl_monitor_dlmutex_add_lock_count();
@@ -435,7 +467,7 @@ static int bh_dl_monitor_proxy_loader_dlclose(void* handle)
 {
     bool wrlocked = false;
     if(!bh_dl_monitor_dlmutex_is_locked())
-        wrlocked = (0 == pthread_rwlock_wrlock(&bh_dl_monitor_dlclose_lock));
+        wrlocked = (0 == bh_dl_monitor_dlclose_wrlock());
 
     // call __loader_dlclose()
     bh_dl_monitor_dlmutex_add_lock_count();
@@ -472,6 +504,7 @@ static int bh_dl_monitor_hook(void)
         }
     }
     if(0 != pthread_key_create(&bh_dl_monitor_dlmutex_lock_count_tls_key, NULL)) goto err;
+    if(0 != pthread_key_create(&bh_dl_monitor_dlclose_lock_state_tls_key, NULL)) goto err;
 
     if(api_level >= __ANDROID_API_J__ && api_level <= __ANDROID_API_N_MR1__)
     {
@@ -677,14 +710,4 @@ void bh_dl_monitor_del_dlopen_callback(bytehook_pre_dlopen_t pre, bytehook_post_
     pthread_rwlock_unlock(&bh_dl_monitor_cbs_lock);
 
     if(NULL != cb) free(cb);
-}
-
-void bh_dl_monitor_dlclose_rdlock(void)
-{
-    pthread_rwlock_rdlock(&bh_dl_monitor_dlclose_lock);
-}
-
-void bh_dl_monitor_dlclose_unlock(void)
-{
-    pthread_rwlock_unlock(&bh_dl_monitor_dlclose_lock);
 }
