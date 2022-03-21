@@ -42,13 +42,15 @@ android {
             minifyEnabled true
         }
     }
+    packagingOptions {
+        jniLibs {
+            pickFirsts += ['**/libbytehook.so']
+        }
+    }
     if (!rootProject.ext.dependencyOnLocalLibrary) {
         buildFeatures {
             prefab true
         }
-    }
-    packagingOptions {
-        pickFirst '**/libbytehook.so'
     }
     if (rootProject.ext.useASAN) {
         packagingOptions {
@@ -58,9 +60,9 @@ android {
 }
 
 dependencies {
-    implementation 'androidx.appcompat:appcompat:1.4.0'
-    implementation 'com.google.android.material:material:1.4.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.2'
+    implementation 'androidx.appcompat:appcompat:1.4.1'
+    implementation 'com.google.android.material:material:1.5.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.3'
 
     if (rootProject.ext.dependencyOnLocalLibrary) {
         implementation project(':bytehook')
@@ -70,3 +72,13 @@ dependencies {
 }
 
 apply from: rootProject.file('gradle/sanitizer.gradle')
+
+if (rootProject.ext.dependencyOnLocalLibrary) {
+    tasks.whenTaskAdded { task ->
+        if (task.name.startsWith('buildCMakeDebug[')) {
+            task.dependsOn(':bytehook:mergeDebugNativeLibs')
+        } else if (task.name.startsWith('buildCMakeRelWithDebInfo[')) {
+            task.dependsOn(':bytehook:stripReleaseDebugSymbols')
+        }
+    }
+}
