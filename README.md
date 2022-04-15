@@ -1,4 +1,4 @@
-# bhook
+# ByteHook
 
 ![](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)
 ![](https://img.shields.io/badge/release-1.0.5-red.svg?style=flat)
@@ -7,9 +7,11 @@
 
 [README 中文版](README.zh-CN.md)
 
-ByteHook(aka bhook) is a PLT hook framework for Android app. It provides an overall solution for using PLT hook in Android app.
+ByteHook is an Android PLT hook library which supports armeabi-v7a, arm64-v8a, x86 and x86_64.
 
 Most of ByteDance's Android apps(including Douyin, Toutiao, Xigua Video) use ByteHook as the PLT hook solution in production.
+
+If you need an Android inline hook library, please move to [ShadowHook](https://github.com/bytedance/android-inline-hook).
 
 
 ## Features

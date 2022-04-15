@@ -1,4 +1,4 @@
-# bhook
+# ByteHook
 
 ![](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)
 ![](https://img.shields.io/badge/release-1.0.5-red.svg?style=flat)
@@ -7,9 +7,11 @@
 
 [README English Version](README.md)
 
-ByteHook(aka bhook) 是一个针对 Android app 的 PLT hook 框架。它提供了一套 Android app 使用 PLT hook 的整体方案。
+**ByteHook** 是一个 Android PLT hook 库，它支持 armeabi-v7a, arm64-v8a, x86 和 x86_64。
 
 字节跳动的大多数 Android app（包括抖音，今日头条，西瓜视频）在线上环境中使用了 ByteHook 作为 PLT hook 方案。
+
+如果你需要的是 Android inline hook 库，请移步到 [ShadowHook](https://github.com/bytedance/android-inline-hook)。
 
 
 ## 特征

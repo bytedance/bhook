@@ -36,7 +36,7 @@ ext {
     POM_VERSION_NAME = "1.0.5"
 
     POM_NAME = "bytehook"
-    POM_DESCRIPTION = "ByteHook is a PLT hook framework for Android app."
+    POM_DESCRIPTION = "ByteHook is an Android PLT hook library which supports armeabi-v7a, arm64-v8a, x86 and x86_64."
     POM_URL = "https://github.com/bytedance/bhook"
     POM_INCEPTION_YEAR = "2020"
     POM_PACKAGING = "aar"
