@@ -7,7 +7,7 @@
 
 [README 中文版](README.zh-CN.md)
 
-ByteHook is an Android PLT hook library which supports armeabi-v7a, arm64-v8a, x86 and x86_64.
+**ByteHook** is an Android PLT hook library which supports armeabi-v7a, arm64-v8a, x86 and x86_64.
 
 Most of ByteDance's Android apps(including Douyin, Toutiao, Xigua Video) use ByteHook as the PLT hook solution in production.
 
