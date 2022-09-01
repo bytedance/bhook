@@ -2,7 +2,7 @@
 
 ![](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)
 ![](https://img.shields.io/badge/release-1.0.5-red.svg?style=flat)
-![](https://img.shields.io/badge/Android-4.1%20--%2012-blue.svg?style=flat)
+![](https://img.shields.io/badge/Android-4.1%20--%2013-blue.svg?style=flat)
 ![](https://img.shields.io/badge/arch-armeabi--v7a%20%7C%20arm64--v8a%20%7C%20x86%20%7C%20x86__64-blue.svg?style=flat)
 
 [README 中文版](README.zh-CN.md)
@@ -16,7 +16,7 @@ If you need an Android inline hook library, please move to [ShadowHook](https://
 
 ## Features
 
-* Support Android 4.1 - 12 (API level 16 - 31).
+* Support Android 4.1 - 13 (API level 16 - 33).
 * Support armeabi-v7a, arm64-v8a, x86 and x86_64.
 * Multiple hooks and unhooks for the same function do not conflict with each other.
 * Hook a single, partial or all of the dynamic libraries in the process.
