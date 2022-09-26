@@ -524,8 +524,8 @@ void bh_hook_manager_hook(bh_hook_manager_t *self, bh_task_t *task, bh_elf_t *ca
 void bh_hook_manager_unhook(bh_hook_manager_t *self, bh_task_t *task, bh_elf_t *caller_elf) {
   // get all GOT entries
   void *addr_array[BH_HOOK_MANAGER_GOT_MAX_CAP];
-  size_t addr_array_sz =
-      bh_hook_manager_find_all_got(caller_elf, task, addr_array, BH_HOOK_MANAGER_GOT_MAX_CAP);
+  size_t addr_array_sz = bh_elf_find_import_func_addr_by_symbol_name(caller_elf, task->sym_name, addr_array,
+                                                                     BH_HOOK_MANAGER_GOT_MAX_CAP);
   if (0 == addr_array_sz) return;
 
   // unhook
