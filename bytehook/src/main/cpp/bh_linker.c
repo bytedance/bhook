@@ -30,6 +30,7 @@
 
 #include "bh_const.h"
 #include "bh_dl.h"
+#include "bh_linker_mutex.h"
 #include "bh_log.h"
 #include "bh_util.h"
 
@@ -42,6 +43,15 @@ static pthread_mutex_t *bh_linker_g_dl_mutex = NULL;
 
 int bh_linker_init(void) {
   int api_level = bh_util_get_api_level();
+
+  // for Android 4.x (arm)
+#if defined(__arm__) && __ANDROID_API__ < __ANDROID_API_L__
+  if (api_level < __ANDROID_API_L__) {
+    bh_linker_g_dl_mutex = bh_linker_mutex_get_by_stack();
+    return NULL == bh_linker_g_dl_mutex ? -1 : 0;
+  }
+#endif
+
   if (__ANDROID_API_L__ != api_level && __ANDROID_API_L_MR1__ != api_level &&
       __ANDROID_API_N__ != api_level && __ANDROID_API_N_MR1__ != api_level)
     return 0;

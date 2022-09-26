@@ -103,8 +103,10 @@ static uintptr_t bh_dl_iterate_get_min_vaddr(struct dl_phdr_info *info) {
 static int bh_dl_iterate_by_maps(int (*callback)(struct dl_phdr_info *, size_t, void *), void *data) {
   BH_LOG_INFO("DL iterate: iterate by maps");
 
+  bh_linker_lock();
+
   FILE *maps = fopen("/proc/self/maps", "r");
-  if (NULL == maps) return 0;
+  if (NULL == maps) goto end;
 
   char line[1024];
   while (fgets(line, sizeof(line), maps)) {
@@ -135,6 +137,9 @@ static int bh_dl_iterate_by_maps(int (*callback)(struct dl_phdr_info *, size_t, 
   }
 
   fclose(maps);
+
+end:
+  bh_linker_unlock();
   return 0;
 }
 
