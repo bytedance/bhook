@@ -41,6 +41,7 @@ android {
     }
     buildFeatures {
         prefabPublishing true
+        buildConfig false
     }
     prefab {
         bytehook {
