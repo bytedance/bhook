@@ -108,32 +108,71 @@ static int bh_dl_iterate_by_maps(int (*callback)(struct dl_phdr_info *, size_t, 
   FILE *maps = fopen("/proc/self/maps", "r");
   if (NULL == maps) goto end;
 
-  char line[1024];
-  while (fgets(line, sizeof(line), maps)) {
-    // Try to find an ELF which loaded by linker. This is almost always correct in android 4.x.
+  char buf1[1024], buf2[1024];
+  char *line = buf1;
+  uintptr_t prev_base = 0;
+  bool try_next_line = false;
+
+  while (fgets(line, sizeof(buf1), maps)) {
     uintptr_t base, offset;
-    if (2 != sscanf(line, "%" SCNxPTR "-%*" SCNxPTR " r-xp %" SCNxPTR " ", &base, &offset)) continue;
-    if (0 != offset) continue;
-    if (0 != memcmp((void *)base, ELFMAG, SELFMAG)) continue;
+    char exec;
+    if (3 != sscanf(line, "%" SCNxPTR "-%*" SCNxPTR " r%*c%cp %" SCNxPTR " ",
+                    &base, &exec, &offset)) goto clean;
 
-    // get pathname
-    char *pathname = strchr(line, '/');
-    if (NULL == pathname) break;
-    bh_util_trim_ending(pathname);
+    if ('-' == exec && 0 == offset) {
+      // r--p
+      prev_base = base;
+      line = (line == buf1 ? buf2 : buf1);
+      try_next_line = true;
+      continue;
+    }
+    else if (exec == 'x') {
+      // r-xp
+      char *pathname = NULL;
+      if (try_next_line && 0 != offset) {
+        char *prev = (line == buf1 ? buf2 : buf1);
+        char *prev_pathname = strchr(prev, '/');
+        if (NULL == prev_pathname) goto clean;
 
-    ElfW(Ehdr) *ehdr = (ElfW(Ehdr) *)base;
-    struct dl_phdr_info info;
-    info.dlpi_name = pathname;
-    info.dlpi_phdr = (const ElfW(Phdr) *)(base + ehdr->e_phoff);
-    info.dlpi_phnum = ehdr->e_phnum;
+        pathname = strchr(line, '/');
+        if (NULL == pathname) goto clean;
 
-    // get load bias
-    uintptr_t min_vaddr = bh_dl_iterate_get_min_vaddr(&info);
-    if (UINTPTR_MAX == min_vaddr) continue;  // ignore invalid ELF
-    info.dlpi_addr = (ElfW(Addr))(base - min_vaddr);
+        bh_util_trim_ending(prev_pathname);
+        bh_util_trim_ending(pathname);
+        if (0 != strcmp(prev_pathname, pathname)) goto clean;
 
-    // callback
-    if (0 != callback(&info, sizeof(struct dl_phdr_info), data)) break;
+        // we found the line with r-xp in the next line
+        base = prev_base;
+        offset = 0;
+      }
+
+      if (0 != offset) goto clean;
+
+      // get pathname
+      if (NULL == pathname) {
+        pathname = strchr(line, '/');
+        if (NULL == pathname) goto clean;
+        bh_util_trim_ending(pathname);
+      }
+
+      if (0 != memcmp((void *)base, ELFMAG, SELFMAG)) goto clean;
+      ElfW(Ehdr) *ehdr = (ElfW(Ehdr) *)base;
+      struct dl_phdr_info info;
+      info.dlpi_name = pathname;
+      info.dlpi_phdr = (const ElfW(Phdr) *)(base + ehdr->e_phoff);
+      info.dlpi_phnum = ehdr->e_phnum;
+
+      // get load bias
+      uintptr_t min_vaddr = bh_dl_iterate_get_min_vaddr(&info);
+      if (UINTPTR_MAX == min_vaddr) goto clean;  // ignore invalid ELF
+      info.dlpi_addr = (ElfW(Addr))(base - min_vaddr);
+
+      // callback
+      if (0 != callback(&info, sizeof(struct dl_phdr_info), data)) break;
+    }
+
+ clean:
+    try_next_line = false;
   }
 
   fclose(maps);
