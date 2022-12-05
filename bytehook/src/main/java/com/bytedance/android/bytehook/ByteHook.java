@@ -34,11 +34,7 @@ public class ByteHook {
     private static final boolean defaultDebug = false;
 
     public static int init() {
-        if (inited) {
-            return initStatus;
-        }
-
-        return init(new ConfigBuilder().build());
+        return init(null);
     }
 
     public static synchronized int init(Config config) {
@@ -48,6 +44,11 @@ public class ByteHook {
         inited = true;
 
         long start = System.currentTimeMillis();
+
+        if (config == null) {
+            //use default parameters
+            config = new ConfigBuilder().build();
+        }
 
         try {
             if (config.getLibLoader() == null) {
