@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 ByteDance, Inc.
+// Copyright (c) 2021-2022 ByteDance Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,7 +19,7 @@
 // SOFTWARE.
 //
 
-// Created by Kelun Cai (caikelun@bytedance.com) on 2020-06-02.
+// Created by Kelun Cai (caikelun@bytedance.com) on 2021-04-11.
 
 #include "bytesig.h"
 
@@ -60,13 +60,9 @@ static bytesig_libc_sigprocmask_t bytesig_libc_sigprocmask = NULL;
 static bytesig_libc_sigaction64_t bytesig_libc_sigaction64 = NULL;
 static bytesig_libc_sigaction_t bytesig_libc_sigaction = NULL;
 
-static int bytesig_load_symbol(void) {
-  static int loaded = -1;  // -1: unload, 0: OK, 1: Failed
-
-  if (loaded >= 0) return loaded;
-
+__attribute__((constructor)) static void bytesig_ctor(void) {
   void *libc = dlopen("libc.so", RTLD_LOCAL);
-  if (NULL != libc) {
+  if (__predict_true(NULL != libc)) {
     // sigprocmask64() / sigprocmask()
     bytesig_libc_sigprocmask64 = (bytesig_libc_sigprocmask64_t)dlsym(libc, "sigprocmask64");
     if (NULL == bytesig_libc_sigprocmask64)
@@ -79,12 +75,12 @@ static int bytesig_load_symbol(void) {
 
     dlclose(libc);
   }
+}
 
-  loaded = (((NULL == bytesig_libc_sigprocmask64 && NULL == bytesig_libc_sigprocmask) ||
-             (NULL == bytesig_libc_sigaction64 && NULL == bytesig_libc_sigaction))
-                ? 1
-                : 0);
-  return loaded;
+static int bytesig_check_symbols(void) {
+  if (__predict_false(NULL == bytesig_libc_sigprocmask64 && NULL == bytesig_libc_sigprocmask)) return -1;
+  if (__predict_false(NULL == bytesig_libc_sigaction64 && NULL == bytesig_libc_sigaction)) return -1;
+  return 0;
 }
 
 static int bytesig_real_sigprocmask(int how, const sigset_t *set, sigset_t *oldset) {
@@ -232,17 +228,18 @@ int bytesig_init(int signum) {
   int ret = -1;
   static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
-  if (signum <= 0 || signum >= __SIGRTMIN || signum == SIGKILL || signum == SIGSTOP) return -1;
+  if (__predict_false(signum <= 0 || signum >= __SIGRTMIN || signum == SIGKILL || signum == SIGSTOP))
+    return -1;
 
-  if (NULL != bytesig_signal_array[signum]) return -1;
+  // check symbols from bionic
+  if (__predict_false(0 != bytesig_check_symbols())) return -1;
+
+  if (__predict_false(NULL != bytesig_signal_array[signum])) return -1;
   pthread_mutex_lock(&lock);
-  if (NULL != bytesig_signal_array[signum]) goto end;
-
-  // load symbols from bionic (only once)
-  if (0 != bytesig_load_symbol()) goto end;
+  if (__predict_false(NULL != bytesig_signal_array[signum])) goto end;
 
   bytesig_signal_t *sig = calloc(1, sizeof(bytesig_signal_t));
-  if (NULL == sig) goto end;
+  if (__predict_false(NULL == sig)) goto end;
 
   // register the signal with the kernel
   // in our handler, we start off with all signals blocked
@@ -251,7 +248,7 @@ int bytesig_init(int signum) {
   sigfillset(&act.sa_mask);
   act.sa_sigaction = bytesig_handler;
   act.sa_flags = SA_SIGINFO | SA_ONSTACK | SA_RESTART;
-  if (0 != bytesig_real_sigaction(signum, &act, &sig->prev_action)) {
+  if (__predict_false(0 != bytesig_real_sigaction(signum, &act, &sig->prev_action))) {
     free(sig);
     goto end;
   }
@@ -289,7 +286,7 @@ void bytesig_protect(pid_t tid, sigjmp_buf *jbuf, const int signums[], size_t si
       bytesig_thread_info_t *thdinfo = &sig->protected_threads[j];
       if (0 == thdinfo->tid) {
         pid_t expected = 0;
-        if (__atomic_compare_exchange_n(&thdinfo->tid, &expected, tid, true, __ATOMIC_ACQUIRE,
+        if (__atomic_compare_exchange_n(&thdinfo->tid, &expected, tid, false, __ATOMIC_ACQUIRE,
                                         __ATOMIC_RELAXED)) {
           thdinfo->jbuf = jbuf;
           BYTESIG_LOG("protect_start signal %d at %zu", signum, j);

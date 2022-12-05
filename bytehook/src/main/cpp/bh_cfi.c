@@ -38,40 +38,41 @@
 #define BH_CFI_SLOWPATH_DIAG  "__cfi_slowpath_diag"
 #define BH_CFI_ARM64_RET_INST 0xd65f03c0
 
+static void *bh_cfi_slowpath = NULL;
+static void *bh_cfi_slowpath_diag = NULL;
+
+__attribute__((constructor)) static void bh_cfi_ctor(void) {
+  void *handle = dlopen(BH_CFI_LIB_DL, RTLD_NOW);
+  if (NULL != handle) {
+    bh_cfi_slowpath = dlsym(handle, BH_CFI_SLOWPATH);
+    bh_cfi_slowpath_diag = dlsym(handle, BH_CFI_SLOWPATH_DIAG);
+    dlclose(handle);
+  }
+}
+
 int bh_cfi_disable_slowpath(void) {
   if (bh_util_get_api_level() < __ANDROID_API_O__) return 0;
 
-  void *handle = dlopen(BH_CFI_LIB_DL, RTLD_NOW);
-  if (NULL == handle) return -1;
+  if (NULL == bh_cfi_slowpath || NULL == bh_cfi_slowpath_diag) return -1;
 
-  void *cfi_slowpath = dlsym(handle, BH_CFI_SLOWPATH);
-  if (NULL == cfi_slowpath) goto err;
-  void *cfi_slowpath_diag = dlsym(handle, BH_CFI_SLOWPATH_DIAG);
-  if (NULL == cfi_slowpath_diag) goto err;
-
-  void *start = cfi_slowpath <= cfi_slowpath_diag ? cfi_slowpath : cfi_slowpath_diag;
-  void *end = cfi_slowpath <= cfi_slowpath_diag ? cfi_slowpath_diag : cfi_slowpath;
+  void *start = bh_cfi_slowpath <= bh_cfi_slowpath_diag ? bh_cfi_slowpath : bh_cfi_slowpath_diag;
+  void *end = bh_cfi_slowpath <= bh_cfi_slowpath_diag ? bh_cfi_slowpath_diag : bh_cfi_slowpath;
   if (0 != bh_util_set_protect(start, (void *)((uintptr_t)end + sizeof(uint32_t)),
                                PROT_READ | PROT_WRITE | PROT_EXEC))
-    goto err;
+    return -1;
 
   BYTESIG_TRY(SIGSEGV, SIGBUS) {
-    *((uint32_t *)cfi_slowpath) = BH_CFI_ARM64_RET_INST;
-    *((uint32_t *)cfi_slowpath_diag) = BH_CFI_ARM64_RET_INST;
+    *((uint32_t *)bh_cfi_slowpath) = BH_CFI_ARM64_RET_INST;
+    *((uint32_t *)bh_cfi_slowpath_diag) = BH_CFI_ARM64_RET_INST;
   }
   BYTESIG_CATCH() {
-    goto err;
+    return -1;
   }
   BYTESIG_EXIT
 
   __builtin___clear_cache(start, (void *)((size_t)end + sizeof(uint32_t)));
 
-  dlclose(handle);
   return 0;
-
-err:
-  dlclose(handle);
-  return -1;
 }
 
 #else
