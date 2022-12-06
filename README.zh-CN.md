@@ -1,7 +1,7 @@
 # ByteHook
 
 ![](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)
-![](https://img.shields.io/badge/release-1.0.6-red.svg?style=flat)
+![](https://img.shields.io/badge/release-1.0.7-red.svg?style=flat)
 ![](https://img.shields.io/badge/Android-4.1%20--%2013-blue.svg?style=flat)
 ![](https://img.shields.io/badge/arch-armeabi--v7a%20%7C%20arm64--v8a%20%7C%20x86%20%7C%20x86__64-blue.svg?style=flat)
 
@@ -9,7 +9,7 @@
 
 **ByteHook** 是一个 Android PLT hook 库，它支持 armeabi-v7a, arm64-v8a, x86 和 x86_64。
 
-字节跳动的大多数 Android app（包括抖音，今日头条，西瓜视频）在线上环境中使用了 ByteHook 作为 PLT hook 方案。
+ByteHook 现在被用于 TikTok，抖音，今日头条, 西瓜视频，飞书中。
 
 如果你需要的是 Android inline hook 库，请移步到 [ShadowHook](https://github.com/bytedance/android-inline-hook)。
 
@@ -55,7 +55,7 @@ android {
 }
 
 dependencies {
-    implementation 'com.bytedance:bytehook:1.0.6'
+    implementation 'com.bytedance:bytehook:1.0.7'
 }
 ```
 

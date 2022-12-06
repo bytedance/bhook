@@ -21,7 +21,7 @@ ext {
 
     POM_GROUP_ID = "com.bytedance"
     POM_ARTIFACT_ID = "bytehook"
-    POM_VERSION_NAME = "1.0.6"
+    POM_VERSION_NAME = "1.0.7"
 
     POM_NAME = "bytehook"
     POM_DESCRIPTION = "ByteHook is an Android PLT hook library which supports armeabi-v7a, arm64-v8a, x86 and x86_64."

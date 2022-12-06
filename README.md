@@ -1,7 +1,7 @@
 # ByteHook
 
 ![](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)
-![](https://img.shields.io/badge/release-1.0.6-red.svg?style=flat)
+![](https://img.shields.io/badge/release-1.0.7-red.svg?style=flat)
 ![](https://img.shields.io/badge/Android-4.1%20--%2013-blue.svg?style=flat)
 ![](https://img.shields.io/badge/arch-armeabi--v7a%20%7C%20arm64--v8a%20%7C%20x86%20%7C%20x86__64-blue.svg?style=flat)
 
@@ -9,7 +9,7 @@
 
 **ByteHook** is an Android PLT hook library which supports armeabi-v7a, arm64-v8a, x86 and x86_64.
 
-Most of ByteDance's Android apps(including Douyin, Toutiao, Xigua Video) use ByteHook as the PLT hook solution in production.
+ByteHook is now used in TikTok, Douyin, Toutiao, Xigua Video, Lark.
 
 If you need an Android inline hook library, please move to [ShadowHook](https://github.com/bytedance/android-inline-hook).
 
@@ -55,7 +55,7 @@ android {
 }
 
 dependencies {
-    implementation 'com.bytedance:bytehook:1.0.6'
+    implementation 'com.bytedance:bytehook:1.0.7'
 }
 ```
 
