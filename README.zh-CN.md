@@ -9,7 +9,7 @@
 
 **ByteHook** 是一个 Android PLT hook 库，它支持 armeabi-v7a, arm64-v8a, x86 和 x86_64。
 
-ByteHook 现在被用于 TikTok，抖音，今日头条, 西瓜视频，飞书中。
+ByteHook 现在被用于 TikTok，抖音，今日头条，西瓜视频，飞书中。
 
 如果你需要的是 Android inline hook 库，请移步到 [ShadowHook](https://github.com/bytedance/android-inline-hook)。
 
