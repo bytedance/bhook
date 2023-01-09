@@ -116,8 +116,8 @@ static int bh_dl_iterate_by_maps(int (*callback)(struct dl_phdr_info *, size_t, 
   while (fgets(line, sizeof(buf1), maps)) {
     uintptr_t base, offset;
     char exec;
-    if (3 != sscanf(line, "%" SCNxPTR "-%*" SCNxPTR " r%*c%cp %" SCNxPTR " ",
-                    &base, &exec, &offset)) goto clean;
+    if (3 != sscanf(line, "%" SCNxPTR "-%*" SCNxPTR " r%*c%cp %" SCNxPTR " ", &base, &exec, &offset))
+      goto clean;
 
     if ('-' == exec && 0 == offset) {
       // r--p
@@ -125,8 +125,7 @@ static int bh_dl_iterate_by_maps(int (*callback)(struct dl_phdr_info *, size_t, 
       line = (line == buf1 ? buf2 : buf1);
       try_next_line = true;
       continue;
-    }
-    else if (exec == 'x') {
+    } else if (exec == 'x') {
       // r-xp
       char *pathname = NULL;
       if (try_next_line && 0 != offset) {
@@ -171,7 +170,7 @@ static int bh_dl_iterate_by_maps(int (*callback)(struct dl_phdr_info *, size_t, 
       if (0 != callback(&info, sizeof(struct dl_phdr_info), data)) break;
     }
 
- clean:
+  clean:
     try_next_line = false;
   }
 
