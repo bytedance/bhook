@@ -81,14 +81,17 @@ void bytehook_dump_records(int fd, uint32_t item_flags) {
 }
 
 void *bytehook_get_prev_func(void *func) {
+  if (BYTEHOOK_MODE_MANUAL == bh_core_get_mode()) abort();
   return bh_core_get_prev_func(func);
 }
 
 void *bytehook_get_return_address(void) {
+  if (BYTEHOOK_MODE_MANUAL == bh_core_get_mode()) abort();
   return bh_core_get_return_address();
 }
 
 void bytehook_pop_stack(void *return_address) {
+  if (BYTEHOOK_MODE_MANUAL == bh_core_get_mode()) abort();
   bh_core_pop_stack(return_address);
 }
 
