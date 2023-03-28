@@ -200,9 +200,6 @@ void bh_elf_manager_refresh(bh_elf_manager_t *self, bool sync_clean, bh_elf_mana
     }
   }
 
-  // unlock ELFs-tree
-  pthread_rwlock_unlock(&self->elfs_lock);
-
   // if we are in sync-clean status, no other iterate or hooks can be performed at the same time
   if (sync_clean) {
     // remove and destroy all unreferenced ELF object in the abandoned list
@@ -211,6 +208,9 @@ void bh_elf_manager_refresh(bh_elf_manager_t *self, bool sync_clean, bh_elf_mana
       bh_elf_destroy(&elf);
     }
   }
+
+  // unlock ELFs-tree
+    pthread_rwlock_unlock(&self->elfs_lock);
 
   // do callback for newborn ELFs (no need to lock)
   if (NULL != cb) {
