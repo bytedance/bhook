@@ -73,8 +73,9 @@ static void bh_task_manager_post_new_elf(bh_elf_t *elf, void *arg) {
 
   pthread_rwlock_rdlock(&self->lock);
   bh_task_t *task;
-  TAILQ_FOREACH(task, &self->tasks, link)
-  bh_task_hook_elf(task, elf);
+  TAILQ_FOREACH(task, &self->tasks, link) {
+    bh_task_hook_elf(task, elf);
+  }
   pthread_rwlock_unlock(&self->lock);
 }
 

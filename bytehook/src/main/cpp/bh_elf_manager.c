@@ -210,7 +210,7 @@ void bh_elf_manager_refresh(bh_elf_manager_t *self, bool sync_clean, bh_elf_mana
   }
 
   // unlock ELFs-tree
-    pthread_rwlock_unlock(&self->elfs_lock);
+  pthread_rwlock_unlock(&self->elfs_lock);
 
   // do callback for newborn ELFs (no need to lock)
   if (NULL != cb) {
@@ -233,8 +233,9 @@ void bh_elf_manager_iterate(bh_elf_manager_t *self, bh_elf_manager_iterate_cb_t 
       copy_elfs_cnt = self->elfs_cnt;
       size_t i = 0;
       bh_elf_t *elf;
-      RB_FOREACH(elf, bh_elf_tree, &self->elfs)
-      copy_elfs[i++] = elf;
+      RB_FOREACH(elf, bh_elf_tree, &self->elfs) {
+        copy_elfs[i++] = elf;
+      }
     }
   }
   pthread_rwlock_unlock(&self->elfs_lock);
@@ -259,8 +260,9 @@ bh_elf_t *bh_elf_manager_find_elf(bh_elf_manager_t *self, const char *pathname) 
     bh_elf_t elf_key = {.pathname = pathname};
     elf = RB_FIND(bh_elf_tree, &self->elfs, &elf_key);
   } else {
-    RB_FOREACH(elf, bh_elf_tree, &self->elfs)
-    if (bh_elf_is_match(elf, pathname)) break;
+    RB_FOREACH(elf, bh_elf_tree, &self->elfs) {
+      if (bh_elf_is_match(elf, pathname)) break;
+    }
   }
 
   pthread_rwlock_unlock(&self->elfs_lock);

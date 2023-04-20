@@ -68,17 +68,17 @@ typedef struct {
 } bh_trampo_stack_t;
 
 static pthread_key_t bh_trampo_tls_key;
-static bh_trampo_stack_t sh_hub_stack_cache[BH_TRAMPO_THREAD_MAX];
-static uint8_t sh_hub_stack_cache_used[BH_TRAMPO_THREAD_MAX];
+static bh_trampo_stack_t bh_hub_stack_cache[BH_TRAMPO_THREAD_MAX];
+static uint8_t bh_hub_stack_cache_used[BH_TRAMPO_THREAD_MAX];
 
 static bh_trampo_stack_t *bh_trampo_stack_create(void) {
   // get stack from global cache
   for (size_t i = 0; i < BH_TRAMPO_THREAD_MAX; i++) {
-    uint8_t *used = &(sh_hub_stack_cache_used[i]);
+    uint8_t *used = &(bh_hub_stack_cache_used[i]);
     if (0 == *used) {
       uint8_t expected = 0;
       if (__atomic_compare_exchange_n(used, &expected, 1, false, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED)) {
-        bh_trampo_stack_t *stack = &(sh_hub_stack_cache[i]);
+        bh_trampo_stack_t *stack = &(bh_hub_stack_cache[i]);
         stack->frames_cnt = 0;
         return stack;  // OK
       }
@@ -99,11 +99,11 @@ static bh_trampo_stack_t *bh_trampo_stack_create(void) {
 static void bh_trampo_stack_destroy(void *buf) {
   if (NULL == buf) return;
 
-  if ((uintptr_t)sh_hub_stack_cache <= (uintptr_t)buf &&
-      (uintptr_t)buf < ((uintptr_t)sh_hub_stack_cache + sizeof(sh_hub_stack_cache))) {
+  if ((uintptr_t)bh_hub_stack_cache <= (uintptr_t)buf &&
+      (uintptr_t)buf < ((uintptr_t)bh_hub_stack_cache + sizeof(bh_hub_stack_cache))) {
     // return stack to global cache
-    size_t i = ((uintptr_t)buf - (uintptr_t)sh_hub_stack_cache) / sizeof(bh_trampo_stack_t);
-    uint8_t *used = &(sh_hub_stack_cache_used[i]);
+    size_t i = ((uintptr_t)buf - (uintptr_t)bh_hub_stack_cache) / sizeof(bh_trampo_stack_t);
+    uint8_t *used = &(bh_hub_stack_cache_used[i]);
     if (1 != *used) abort();
     __atomic_store_n(used, 0, __ATOMIC_RELEASE);
   } else {
@@ -114,8 +114,8 @@ static void bh_trampo_stack_destroy(void *buf) {
 
 int bh_trampo_init(void) {
   if (0 != pthread_key_create(&bh_trampo_tls_key, bh_trampo_stack_destroy)) return -1;
-  memset(&sh_hub_stack_cache, 0, sizeof(sh_hub_stack_cache));
-  memset(&sh_hub_stack_cache_used, 0, sizeof(sh_hub_stack_cache_used));
+  memset(&bh_hub_stack_cache, 0, sizeof(bh_hub_stack_cache));
+  memset(&bh_hub_stack_cache_used, 0, sizeof(bh_hub_stack_cache_used));
   return 0;
 }
 
