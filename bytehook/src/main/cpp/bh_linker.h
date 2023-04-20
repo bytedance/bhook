@@ -24,6 +24,7 @@
 #pragma once
 
 #include <pthread.h>
+#include <stdbool.h>
 
 // linker's __dl__ZL10dlopen_extPKciPK17android_dlextinfoPv for Android 7.0, 7.1
 typedef void *(*bh_linker_dlopen_ext_t)(const char *, int, const void *, void *);
@@ -45,3 +46,6 @@ int bh_linker_init(void);
 
 void bh_linker_lock(void);
 void bh_linker_unlock(void);
+bool bh_linker_is_in_lock(void);
+void bh_linker_add_lock_count(void);
+void bh_linker_sub_lock_count(void);
