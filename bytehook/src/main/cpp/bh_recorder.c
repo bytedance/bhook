@@ -173,8 +173,9 @@ static uint64_t bh_recorder_get_timestamp_ms(void) {
   gettimeofday(&tv, NULL);
 
   if (LONG_MAX == bh_recorder_tz) {
-    struct tm tm;
-    if (NULL != localtime_r((time_t *)(&(tv.tv_sec)), &tm)) bh_recorder_tz = tm.tm_gmtoff;
+    //    struct tm tm;
+    //    if (NULL != localtime_r((time_t *)(&(tv.tv_sec)), &tm)) bh_recorder_tz = tm.tm_gmtoff;
+    bh_recorder_tz = 0;
   }
 
   return (uint64_t)tv.tv_sec * 1000 + (uint64_t)tv.tv_usec / 1000;
