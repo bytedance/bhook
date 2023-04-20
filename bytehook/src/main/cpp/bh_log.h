@@ -35,17 +35,17 @@ extern android_LogPriority bh_log_priority;
 
 #define BH_LOG_INFO(fmt, ...)                                                \
   do {                                                                       \
-    if (bh_log_priority <= ANDROID_LOG_INFO)                                 \
+    if (__predict_false(bh_log_priority <= ANDROID_LOG_INFO))                \
       __android_log_print(ANDROID_LOG_INFO, BH_LOG_TAG, fmt, ##__VA_ARGS__); \
   } while (0)
 #define BH_LOG_WARN(fmt, ...)                                                \
   do {                                                                       \
-    if (bh_log_priority <= ANDROID_LOG_WARN)                                 \
+    if (__predict_false(bh_log_priority <= ANDROID_LOG_WARN))                \
       __android_log_print(ANDROID_LOG_WARN, BH_LOG_TAG, fmt, ##__VA_ARGS__); \
   } while (0)
 #define BH_LOG_ERROR(fmt, ...)                                                \
   do {                                                                        \
-    if (bh_log_priority <= ANDROID_LOG_ERROR)                                 \
+    if (__predict_false(bh_log_priority <= ANDROID_LOG_ERROR))                \
       __android_log_print(ANDROID_LOG_ERROR, BH_LOG_TAG, fmt, ##__VA_ARGS__); \
   } while (0)
 
