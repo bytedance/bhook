@@ -87,12 +87,27 @@ public class MySdk {
 ## 开启 / 关闭调试日志
 
 ```java
+public static boolean getDebug();
 public static void setDebug(boolean debug);
 ```
 
 * 可以通过 `setDebug()` 随时开启 / 关闭 ByteHook 的调试日志。
 * 调试日志输出到 logcat，tag为：`bytehook_tag`。
 * 使用默认参数初始化时，ByteHook 默认关闭调试日志。
+
+
+## 开启 / 关闭操作记录
+
+```java
+public static boolean getRecordable();
+public static void setRecordable(boolean recordable);
+```
+
+* 可以通过 `setRecordable()` 随时开启 / 关闭 ByteHook 的操作记录。
+* 操作记录包含 hook 和 unhook 的调用信息，保存在内存中，需要的时候可以通过 API 读取。
+* 使用默认参数初始化时，ByteHook 默认关闭操作记录。
+* 详见：[操作记录](records.zh-CN.md)。
+
 
 ## 增加全局忽略的动态库
 

@@ -1,9 +1,10 @@
 # 操作记录
 
 
-* ByteHook 会在内存中记录 hook / unhook 的操作信息。
+* ByteHook 可以在内存中记录 hook / unhook 的操作信息。
 * ByteHook 使用了一种比较精简的二进制 + 数据字典格式来记录信息，占用的内存会动态扩展，当操作记录使用的内存达到 1Mbytes 时，就停止继续记录。（1Mbytes估算可以记录 20000 次 hook / unhook 的操作信息）
 * ByteHook 提供了 dump 这些数据的接口。以字符串形式返回操作信息的内容，或将内容写入指定的 FD（文件描述符）中。（其中写入 FD 的 API 是异步信号安全的，可以在 signal handler 中使用。例如，可以在捕获 app 崩溃的signal handler 中调用）
+* 注意：ByteHook 默认关闭操作记录。需要的话，可以在初始化完成后通过 Java 函数 `setRecordable()` 或 Native 函数 `bytehook_set_recordable()` 开启。
 
 ## native 层 API
 

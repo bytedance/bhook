@@ -22,10 +22,21 @@ int bytehook_init(int mode, bool debug);
 ## 开启 / 关闭调试日志
 
 ```C++
+bool bytehook_get_debug(void);
 void bytehook_set_debug(bool debug);
 ```
 
-作用和 Java 层 `setDebug()` 函数相同。
+作用和 Java 层 `getDebug()`，`setDebug()` 函数相同。
+
+
+## 开启 / 关闭操作记录
+
+```C++
+bool bytehook_get_recordable(void);
+void bytehook_set_recordable(bool recordable);
+```
+
+作用和 Java 层 `getRecordable()`，`setRecordable()` 函数相同。详见：[操作记录](records.zh-CN.md)。
 
 
 ## 增加全局忽略的动态库
