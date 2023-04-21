@@ -182,8 +182,8 @@ static void *bh_trampo_allocate(size_t sz) {
   // get/create an usable block
   if (remaining < sz) {
     // create new memory map
-    block = mmap(NULL, BH_TRAMPO_BLOCK_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS,
-                 -1, 0);
+    block = sys_mmap(NULL, BH_TRAMPO_BLOCK_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC,
+                     MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (MAP_FAILED == block) {
       ret = NULL;
       goto end;
