@@ -48,6 +48,16 @@
 #define BH_RECORDER_OUTPUT_BUF_EXPAND_STEP  (1024 * 128)
 #define BH_RECORDER_OUTPUT_BUF_MAX          (1024 * 1024)
 
+static bool bh_recorder_recordable = false;
+
+bool bh_recorder_get_recordable(void) {
+  return bh_recorder_recordable;
+}
+
+void bh_recorder_set_recordable(bool recordable) {
+  bh_recorder_recordable = recordable;
+}
+
 typedef struct {
   void *ptr;
   size_t cap;
@@ -218,6 +228,7 @@ static void bh_recorder_get_basename_by_addr(uintptr_t addr, char *lib_name, siz
 
 int bh_recorder_add_hook(int error_number, const char *lib_name, const char *sym_name, uintptr_t new_addr,
                          uintptr_t stub, uintptr_t caller_addr) {
+  if (!bh_recorder_recordable) return 0;
   if (bh_recorder_error) return -1;
 
   // lib_name
@@ -267,6 +278,7 @@ err:
 }
 
 int bh_recorder_add_unhook(int error_number, uintptr_t stub, uintptr_t caller_addr) {
+  if (!bh_recorder_recordable) return 0;
   if (bh_recorder_error) return -1;
 
   char caller_lib_name[BH_RECORDER_LIB_NAME_MAX];
@@ -400,6 +412,7 @@ static void bh_recorder_output(char **str, int fd, uint32_t item_flags) {
 }
 
 char *bh_recorder_get(uint32_t item_flags) {
+  if (!bh_recorder_recordable) return NULL;
   if (0 == (item_flags & BYTEHOOK_RECORD_ITEM_ALL)) return NULL;
 
   char *str = NULL;
@@ -408,6 +421,7 @@ char *bh_recorder_get(uint32_t item_flags) {
 }
 
 void bh_recorder_dump(int fd, uint32_t item_flags) {
+  if (!bh_recorder_recordable) return;
   if (0 == (item_flags & BYTEHOOK_RECORD_ITEM_ALL)) return;
   if (fd < 0) return;
   bh_recorder_output(NULL, fd, item_flags);

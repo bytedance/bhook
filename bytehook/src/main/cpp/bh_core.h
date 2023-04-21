@@ -60,7 +60,10 @@ int bh_core_unhook(bytehook_stub_t stub, uintptr_t caller_addr);
 
 int bh_core_add_ignore(const char *caller_path_name);
 
+bool bh_core_get_debug(void);
 void bh_core_set_debug(bool debug);
+bool bh_core_get_recordable(void);
+void bh_core_set_recordable(bool recordable);
 
 void *bh_core_get_prev_func(void *func);
 

@@ -24,14 +24,19 @@
 package com.bytedance.android.bytehook;
 
 public class ByteHook {
+    private static final int ERRNO_OK = 0;
+    private static final int ERRNO_UNINIT = 1;
+    private static final int ERRNO_LOAD_LIBRARY_EXCEPTION = 100;
+    private static final int ERRNO_INIT_EXCEPTION = 101;
 
     private static boolean inited = false;
-    private static int initStatus = 1; // uninit
+    private static int initStatus = ERRNO_UNINIT;
     private static long initCostMs = -1;
     private static final String libName = "bytehook";
     private static final ILibLoader defaultLibLoader = null;
     private static final int defaultMode = Mode.AUTOMATIC.getValue();
     private static final boolean defaultDebug = false;
+    private static final boolean defaultRecordable = false;
 
     public static int init() {
         return init(null);
@@ -50,6 +55,7 @@ public class ByteHook {
             config = new ConfigBuilder().build();
         }
 
+        // load libbytehook.so
         try {
             if (config.getLibLoader() == null) {
                 System.loadLibrary(libName);
@@ -57,15 +63,25 @@ public class ByteHook {
                 config.getLibLoader().loadLibrary(libName);
             }
         } catch (Throwable ignored) {
-            initStatus = 100; // load library failed
+            initStatus = ERRNO_LOAD_LIBRARY_EXCEPTION;
             initCostMs = System.currentTimeMillis() - start;
             return initStatus;
         }
 
+        // call native bytehook_init()
         try {
             initStatus = nativeInit(config.getMode(), config.getDebug());
         } catch (Throwable ignored) {
-            initStatus = 101; // call init() failed
+            initStatus = ERRNO_INIT_EXCEPTION;
+        }
+
+        // call native bytehook_set_recordable()
+        if (config.getRecordable()) {
+            try {
+                nativeSetRecordable(config.getRecordable());
+            } catch (Throwable ignored) {
+                initStatus = ERRNO_INIT_EXCEPTION;
+            }
         }
 
         initCostMs = System.currentTimeMillis() - start;
@@ -73,7 +89,7 @@ public class ByteHook {
     }
 
     public static int addIgnore(String callerPathName) {
-        if (initStatus == 0) {
+        if (initStatus == ERRNO_OK) {
             return nativeAddIgnore(callerPathName);
         }
         return initStatus;
@@ -87,14 +103,41 @@ public class ByteHook {
         return initCostMs;
     }
 
+    public static Mode getMode() {
+        if (initStatus == ERRNO_OK) {
+            return Mode.AUTOMATIC.getValue() == nativeGetMode() ? Mode.AUTOMATIC : Mode.MANUAL;
+        }
+        return Mode.AUTOMATIC;
+    }
+
+    public static boolean getDebug() {
+        if (initStatus == ERRNO_OK) {
+            return nativeGetDebug();
+        }
+        return defaultDebug;
+    }
+
     public static void setDebug(boolean debug) {
-        if (initStatus == 0) {
+        if (initStatus == ERRNO_OK) {
             nativeSetDebug(debug);
         }
     }
 
+    public static boolean getRecordable() {
+        if (initStatus == ERRNO_OK) {
+            return nativeGetRecordable();
+        }
+        return defaultRecordable;
+    }
+
+    public static void setRecordable(boolean recordable) {
+        if (initStatus == ERRNO_OK) {
+            nativeSetRecordable(recordable);
+        }
+    }
+
     public static String getRecords(RecordItem... recordItems) {
-        if (initStatus == 0) {
+        if (initStatus == ERRNO_OK) {
             int itemFlags = 0;
             for (RecordItem recordItem : recordItems) {
                 switch (recordItem) {
@@ -137,7 +180,7 @@ public class ByteHook {
     }
 
     public static String getArch() {
-        if (initStatus == 0) {
+        if (initStatus == ERRNO_OK) {
             return nativeGetArch();
         }
         return "unknown";
@@ -147,6 +190,7 @@ public class ByteHook {
         private ILibLoader libLoader;
         private int mode;
         private boolean debug;
+        private boolean recordable;
 
         public Config() {
         }
@@ -174,6 +218,14 @@ public class ByteHook {
         public boolean getDebug() {
             return this.debug;
         }
+
+        public void setRecordable(boolean recordable) {
+            this.recordable = recordable;
+        }
+
+        public boolean getRecordable() {
+            return this.recordable;
+        }
     }
 
     public static class ConfigBuilder {
@@ -181,6 +233,7 @@ public class ByteHook {
         private ILibLoader libLoader = defaultLibLoader;
         private int mode = defaultMode;
         private boolean debug = defaultDebug;
+        private boolean recordable = defaultRecordable;
 
         public ConfigBuilder() {
         }
@@ -200,11 +253,17 @@ public class ByteHook {
             return this;
         }
 
+        public ConfigBuilder setRecordable(boolean recordable) {
+            this.recordable = recordable;
+            return this;
+        }
+
         public Config build() {
             Config config = new Config();
             config.setLibLoader(libLoader);
             config.setMode(mode);
             config.setDebug(debug);
+            config.setRecordable(recordable);
             return config;
         }
     }
@@ -244,12 +303,12 @@ public class ByteHook {
     }
 
     private static native int nativeInit(int mode, boolean debug);
-
     private static native int nativeAddIgnore(String callerPathName);
-
+    private static native int nativeGetMode();
+    private static native boolean nativeGetDebug();
     private static native void nativeSetDebug(boolean debug);
-
+    private static native boolean nativeGetRecordable();
+    private static native void nativeSetRecordable(boolean recordable);
     private static native String nativeGetRecords(int itemFlags);
-
     private static native String nativeGetArch();
 }

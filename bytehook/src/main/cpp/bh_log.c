@@ -28,7 +28,13 @@
 
 android_LogPriority bh_log_priority = ANDROID_LOG_SILENT;
 
+bool bh_log_get_debug(void) {
+  return bh_log_priority <= ANDROID_LOG_INFO;
+}
+
 void bh_log_set_debug(bool debug) {
-  __atomic_store_n((android_LogPriority *)&bh_log_priority, (debug ? ANDROID_LOG_INFO : ANDROID_LOG_SILENT),
-                   __ATOMIC_SEQ_CST);
+  if (__predict_false(debug))
+    bh_log_priority = ANDROID_LOG_INFO;
+  else
+    bh_log_priority = ANDROID_LOG_SILENT;
 }

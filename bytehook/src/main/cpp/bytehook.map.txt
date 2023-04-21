@@ -7,7 +7,10 @@
         bytehook_hook_partial;
         bytehook_unhook;
         bytehook_add_ignore;
+        bytehook_get_debug;
         bytehook_set_debug;
+        bytehook_get_recordable;
+        bytehook_set_recordable;
         bytehook_get_records;
         bytehook_dump_records;
         bytehook_get_prev_func;

@@ -68,8 +68,20 @@ int bytehook_add_ignore(const char *caller_path_name) {
   return bh_core_add_ignore(caller_path_name);
 }
 
+bool bytehook_get_debug(void) {
+  return bh_core_get_debug();
+}
+
 void bytehook_set_debug(bool debug) {
   bh_core_set_debug(debug);
+}
+
+bool bytehook_get_recordable(void) {
+  return bh_core_get_recordable();
+}
+
+void bytehook_set_recordable(bool recordable) {
+  bh_core_set_recordable(recordable);
 }
 
 char *bytehook_get_records(uint32_t item_flags) {

@@ -178,8 +178,20 @@ int bh_core_add_ignore(const char *caller_path_name) {
   return 0 == r ? 0 : BYTEHOOK_STATUS_CODE_IGNORE;
 }
 
+bool bh_core_get_debug(void) {
+  return bh_log_get_debug();
+}
+
 void bh_core_set_debug(bool debug) {
   bh_log_set_debug(debug);
+}
+
+bool bh_core_get_recordable(void) {
+  return bh_recorder_get_recordable();
+}
+
+void bh_core_set_recordable(bool recordable) {
+  bh_recorder_set_recordable(recordable);
 }
 
 void *bh_core_get_prev_func(void *func) {

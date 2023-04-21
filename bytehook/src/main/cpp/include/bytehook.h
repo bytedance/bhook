@@ -108,7 +108,11 @@ int bytehook_unhook(bytehook_stub_t stub);
 
 int bytehook_add_ignore(const char *caller_path_name);
 
+int bytehook_get_mode(void);
+bool bytehook_get_debug(void);
 void bytehook_set_debug(bool debug);
+bool bytehook_get_recordable(void);
+void bytehook_set_recordable(bool recordable);
 
 // get operation records
 #define BYTEHOOK_RECORD_ITEM_ALL             0xFF  // 0b11111111
@@ -131,9 +135,6 @@ void bytehook_pop_stack(void *return_address);
 
 // for internal use
 void *bytehook_get_return_address(void);
-
-// for internal use
-int bytehook_get_mode(void);
 
 typedef void (*bytehook_pre_dlopen_t)(const char *filename, void *data);
 

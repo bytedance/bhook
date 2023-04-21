@@ -53,11 +53,35 @@ clean:
   return r;
 }
 
+static jint bh_jni_get_mode(JNIEnv *env, jobject thiz) {
+  (void)env, (void)thiz;
+
+  return BYTEHOOK_MODE_AUTOMATIC == bytehook_get_mode() ? 0 : 1;
+}
+
+static jboolean bh_jni_get_debug(JNIEnv *env, jobject thiz) {
+  (void)env, (void)thiz;
+
+  return bytehook_get_debug();
+}
+
 static void bh_jni_set_debug(JNIEnv *env, jobject thiz, jboolean debug) {
   (void)env;
   (void)thiz;
 
   bytehook_set_debug((bool)debug);
+}
+
+static jboolean bh_jni_get_recordable(JNIEnv *env, jobject thiz) {
+  (void)env, (void)thiz;
+
+  return bytehook_get_recordable();
+}
+
+static void bh_jni_set_recordable(JNIEnv *env, jobject thiz, jboolean recordable) {
+  (void)env, (void)thiz;
+
+  bytehook_set_recordable((bool)recordable);
 }
 
 static jstring bh_jni_get_records(JNIEnv *env, jobject thiz, jint item_flags) {
@@ -103,7 +127,11 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
 
   JNINativeMethod m[] = {{"nativeInit", "(IZ)I", (void *)bh_jni_init},
                          {"nativeAddIgnore", "(Ljava/lang/String;)I", (void *)bh_jni_add_ignore},
+                         {"nativeGetMode", "()I", (void *)bh_jni_get_mode},
+                         {"nativeGetDebug", "()Z", (void *)bh_jni_get_debug},
                          {"nativeSetDebug", "(Z)V", (void *)bh_jni_set_debug},
+                         {"nativeGetRecordable", "()Z", (void *)bh_jni_get_recordable},
+                         {"nativeSetRecordable", "(Z)V", (void *)bh_jni_set_recordable},
                          {"nativeGetRecords", "(I)Ljava/lang/String;", (void *)bh_jni_get_records},
                          {"nativeGetArch", "()Ljava/lang/String;", (void *)bh_jni_get_arch}};
   if (__predict_false(0 != (*env)->RegisterNatives(env, cls, m, sizeof(m) / sizeof(m[0])))) return JNI_ERR;

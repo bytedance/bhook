@@ -56,4 +56,5 @@ extern android_LogPriority bh_log_priority;
 
 #pragma clang diagnostic pop
 
+bool bh_log_get_debug(void);
 void bh_log_set_debug(bool debug);

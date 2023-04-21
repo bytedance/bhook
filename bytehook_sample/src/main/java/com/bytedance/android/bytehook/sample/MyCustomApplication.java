@@ -22,6 +22,7 @@ public class MyCustomApplication extends Application {
                 .setMode(ByteHook.Mode.AUTOMATIC)
 //                .setMode(ByteHook.Mode.MANUAL)
                 .setDebug(true)
+//                .setRecordable(true)
                 .build());
         Log.i(TAG, "bytehook init, return: " + r);
 
