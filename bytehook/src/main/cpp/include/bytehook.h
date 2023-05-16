@@ -186,7 +186,7 @@ class BytehookStackScope {
  private:
   void *return_address_;
 };
-#define BYTEHOOK_STACK_SCOPE() BytehookStackScope __bytehook_stack_scope(__builtin_return_address(0))
+#define BYTEHOOK_STACK_SCOPE() BytehookStackScope bytehook_stack_scope_obj(__builtin_return_address(0))
 #endif
 
 #endif
