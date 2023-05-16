@@ -5,7 +5,7 @@
 ![](https://img.shields.io/badge/Android-4.1%20--%2013-blue.svg?style=flat)
 ![](https://img.shields.io/badge/arch-armeabi--v7a%20%7C%20arm64--v8a%20%7C%20x86%20%7C%20x86__64-blue.svg?style=flat)
 
-[README English Version](README.md)
+[**English**](README.md)
 
 **ByteHook** 是一个 Android PLT hook 库，它支持 armeabi-v7a, arm64-v8a, x86 和 x86_64。
 
