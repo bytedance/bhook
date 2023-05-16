@@ -48,6 +48,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define BYTEHOOK_VERSION "1.0.8"
+
 #define BYTEHOOK_STATUS_CODE_OK                  0
 #define BYTEHOOK_STATUS_CODE_UNINIT              1
 #define BYTEHOOK_STATUS_CODE_INITERR_INVALID_ARG 2
@@ -82,6 +84,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+const char *bytehook_get_version(void);
 
 typedef void *bytehook_stub_t;
 

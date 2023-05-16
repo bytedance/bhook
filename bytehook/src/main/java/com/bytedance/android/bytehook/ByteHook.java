@@ -38,6 +38,10 @@ public class ByteHook {
     private static final boolean defaultDebug = false;
     private static final boolean defaultRecordable = false;
 
+    public static String getVersion() {
+        return nativeGetVersion();
+    }
+
     public static int init() {
         return init(null);
     }
@@ -302,6 +306,7 @@ public class ByteHook {
         STUB
     }
 
+    private static native String nativeGetVersion();
     private static native int nativeInit(int mode, boolean debug);
     private static native int nativeAddIgnore(String callerPathName);
     private static native int nativeGetMode();

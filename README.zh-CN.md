@@ -1,7 +1,7 @@
 # ByteHook
 
 ![](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)
-![](https://img.shields.io/badge/release-1.0.7-red.svg?style=flat)
+![](https://img.shields.io/badge/release-1.0.8-red.svg?style=flat)
 ![](https://img.shields.io/badge/Android-4.1%20--%2013-blue.svg?style=flat)
 ![](https://img.shields.io/badge/arch-armeabi--v7a%20%7C%20arm64--v8a%20%7C%20x86%20%7C%20x86__64-blue.svg?style=flat)
 
@@ -40,14 +40,6 @@ ByteHook 现在被用于 TikTok，抖音，今日头条，西瓜视频，飞书�
 ByteHook 发布在 [Maven Central](https://search.maven.org/) 上。为了使用 [native 依赖项](https://developer.android.com/studio/build/native-dependencies)，ByteHook 使用了从 [Android Gradle Plugin 4.0+](https://developer.android.com/studio/releases/gradle-plugin?buildsystem=cmake#native-dependencies) 开始支持的 [Prefab](https://google.github.io/prefab/) 包格式。
 
 ```Gradle
-allprojects {
-    repositories {
-        mavenCentral()
-    }
-}
-```
-
-```Gradle
 android {
     buildFeatures {
         prefab true
@@ -55,8 +47,14 @@ android {
 }
 
 dependencies {
-    implementation 'com.bytedance:bytehook:1.0.7'
+    implementation 'com.bytedance:bytehook:1.0.8'
 }
+```
+
+**注意**：ByteHook 使用 [prefab package schema v2](https://github.com/google/prefab/releases/tag/v2.0.0)，它是从 [Android Gradle Plugin 7.1.0](https://developer.android.com/studio/releases/gradle-plugin?buildsystem=cmake#7-1-0) 开始作为默认配置的。如果你使用的是 Android Gradle Plugin 7.1.0 之前的版本，请在 `gradle.properties` 中加入以下配置：
+
+```
+android.prefabVersion=2.0.0
 ```
 
 ### 2. 在 CMakeLists.txt 或 Android.mk 中增加依赖

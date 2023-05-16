@@ -32,6 +32,10 @@
 #include "bh_core.h"
 #include "bh_recorder.h"
 
+const char *bytehook_get_version(void) {
+  return "bytehook version " BYTEHOOK_VERSION;
+}
+
 int bytehook_init(int mode, bool debug) {
   return bh_core_init(mode, debug);
 }

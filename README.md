@@ -1,7 +1,7 @@
 # ByteHook
 
 ![](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)
-![](https://img.shields.io/badge/release-1.0.7-red.svg?style=flat)
+![](https://img.shields.io/badge/release-1.0.8-red.svg?style=flat)
 ![](https://img.shields.io/badge/Android-4.1%20--%2013-blue.svg?style=flat)
 ![](https://img.shields.io/badge/arch-armeabi--v7a%20%7C%20arm64--v8a%20%7C%20x86%20%7C%20x86__64-blue.svg?style=flat)
 
@@ -40,14 +40,6 @@ There is a sample app in the [bytehook-sample](bytehook_sample) you can refer to
 ByteHook is published on [Maven Central](https://search.maven.org/), and uses [Prefab](https://google.github.io/prefab/) package format for [native dependencies](https://developer.android.com/studio/build/native-dependencies), which is supported by [Android Gradle Plugin 4.0+](https://developer.android.com/studio/releases/gradle-plugin?buildsystem=cmake#native-dependencies).
 
 ```Gradle
-allprojects {
-    repositories {
-        mavenCentral()
-    }
-}
-```
-
-```Gradle
 android {
     buildFeatures {
         prefab true
@@ -55,8 +47,14 @@ android {
 }
 
 dependencies {
-    implementation 'com.bytedance:bytehook:1.0.7'
+    implementation 'com.bytedance:bytehook:1.0.8'
 }
+```
+
+**Note**: ByteHook uses the [prefab package schema v2](https://github.com/google/prefab/releases/tag/v2.0.0), which is configured by default since [Android Gradle Plugin 7.1.0](https://developer.android.com/studio/releases/gradle-plugin?buildsystem=cmake#7-1-0). If you are using Android Gradle Plugin earlier than 7.1.0, please add the following configuration to `gradle.properties`:
+
+```
+android.prefabVersion=2.0.0
 ```
 
 ### 2. Add dependency in CMakeLists.txt or Android.mk

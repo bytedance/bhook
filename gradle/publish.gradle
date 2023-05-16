@@ -22,32 +22,14 @@ if (secretPropsFile.exists()) {
     ext["ossrhPassword"] = System.getenv('OSSRH_PASSWORD')
 }
 
-task sourcesJar(type: Jar) {
-    archiveClassifier.set("sources")
-    from android.sourceSets.main.java.srcDirs
-}
-
-task javadoc(type: Javadoc) {
-    source = android.sourceSets.main.java.sourceFiles
-    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-}
-
-task javadocJar(type: Jar, dependsOn: javadoc) {
-    archiveClassifier.set("javadoc")
-    from javadoc.destinationDir
-}
-
 project.afterEvaluate {
     publishing {
         publications {
             release(MavenPublication) {
                 from components.release
 
-                artifact sourcesJar
-                artifact javadocJar
-
-                artifactId POM_ARTIFACT_ID
                 groupId POM_GROUP_ID
+                artifactId POM_ARTIFACT_ID
                 version POM_VERSION_NAME
 
                 pom {
@@ -86,7 +68,7 @@ project.afterEvaluate {
 
                 def releasesRepoUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
                 def snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots/"
-                url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+                url = POM_VERSION_NAME.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
 
                 credentials {
                     username ossrhUsername

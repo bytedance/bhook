@@ -56,7 +56,7 @@ bh_core_t *bh_core_global(void) {
 int bh_core_init(int mode, bool debug) {
   // Do not repeat the initialization.
   if (BYTEHOOK_STATUS_CODE_UNINIT != bh_core.init_status) {
-    BH_LOG_SHOW("bytehook already inited, return %d", bh_core.init_status);
+    BH_LOG_SHOW("bytehook already inited, return: %d", bh_core.init_status);
     return bh_core.init_status;
   }
 
@@ -106,7 +106,9 @@ int bh_core_init(int mode, bool debug) {
   }
   pthread_mutex_unlock(&lock);
 
-  BH_LOG_SHOW("bytehook init, mode %d, debug %d, return %d", mode, debug ? 1 : 0, bh_core.init_status);
+  BH_LOG_SHOW("%s: bytehook init(mode: %s, debug: %s), return: %d", bytehook_get_version(),
+              BYTEHOOK_MODE_AUTOMATIC == mode ? "AUTOMATIC" : "MANUAL", debug ? "true" : "false",
+              bh_core.init_status);
   return bh_core.init_status;
 }
 

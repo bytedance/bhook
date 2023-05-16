@@ -29,6 +29,11 @@
 #define BH_JNI_VERSION    JNI_VERSION_1_6
 #define BH_JNI_CLASS_NAME "com/bytedance/android/bytehook/ByteHook"
 
+static jstring bh_jni_get_version(JNIEnv *env, jobject thiz) {
+  (void)thiz;
+  return (*env)->NewStringUTF(env, bytehook_get_version());
+}
+
 static jint bh_jni_init(JNIEnv *env, jobject thiz, jint mode, jboolean debug) {
   (void)env;
   (void)thiz;
@@ -125,7 +130,8 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
   jclass cls;
   if (__predict_false(NULL == (cls = (*env)->FindClass(env, BH_JNI_CLASS_NAME)))) return JNI_ERR;
 
-  JNINativeMethod m[] = {{"nativeInit", "(IZ)I", (void *)bh_jni_init},
+  JNINativeMethod m[] = {{"nativeGetVersion", "()Ljava/lang/String;", (void *)bh_jni_get_version},
+                         {"nativeInit", "(IZ)I", (void *)bh_jni_init},
                          {"nativeAddIgnore", "(Ljava/lang/String;)I", (void *)bh_jni_add_ignore},
                          {"nativeGetMode", "()I", (void *)bh_jni_get_mode},
                          {"nativeGetDebug", "()Z", (void *)bh_jni_get_debug},

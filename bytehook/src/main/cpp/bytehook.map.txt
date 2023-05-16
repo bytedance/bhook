@@ -1,6 +1,7 @@
 {
     global:
         JNI_OnLoad;
+        bytehook_get_version;
         bytehook_init;
         bytehook_hook_single;
         bytehook_hook_all;
