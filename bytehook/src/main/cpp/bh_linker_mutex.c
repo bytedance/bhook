@@ -128,7 +128,7 @@ static pthread_mutex_t *find_dl_lock_by_stack(void) {
   size_t *cursp = NULL;
 
   /* don't modify this codes, even debug >>> */
-  asm volatile("mov %[_cur_sp], sp" : [_cur_sp] "=r"(cursp) : :);
+  __asm__ volatile("mov %[_cur_sp], sp" : [_cur_sp] "=r"(cursp) : :);
 
   dlclose(somain);
 
