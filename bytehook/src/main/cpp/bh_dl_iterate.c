@@ -114,6 +114,9 @@ static int bh_dl_iterate_by_maps(int (*callback)(struct dl_phdr_info *, size_t, 
   bool try_next_line = false;
 
   while (fgets(line, sizeof(buf1), maps)) {
+    // Parsing maps directly has too much uncertainty, so it needs to be strict.
+    if(!bh_util_ends_with(line, BH_CONST_BASENAME_APP_PROCESS) && !bh_util_ends_with(line, ".so")) continue;
+
     uintptr_t base, offset;
     char exec;
     if (3 != sscanf(line, "%" SCNxPTR "-%*" SCNxPTR " r%*c%cp %" SCNxPTR " ", &base, &exec, &offset))

@@ -145,9 +145,9 @@ static int bh_elf_manager_iterate_cb(struct dl_phdr_info *info, size_t size, voi
 
   // ignore invalid or unwanted ELF
   if (bh_util_ends_with(info->dlpi_name, BH_CONST_BASENAME_BYTEHOOK)) return 0;
-  if (!bh_util_ends_with(info->dlpi_name, BH_CONST_BASENAME_APP_PROCESS) &&
-      !bh_util_ends_with(info->dlpi_name, ".so"))
-    return 0;
+//  if (!bh_util_ends_with(info->dlpi_name, BH_CONST_BASENAME_APP_PROCESS) &&
+//      !bh_util_ends_with(info->dlpi_name, ".so"))
+//    return 0;
   if (bh_elf_manager_check_ignore(self, info->dlpi_name)) return 0;
 
   bh_elf_t elf_key = {.pathname = info->dlpi_name};
