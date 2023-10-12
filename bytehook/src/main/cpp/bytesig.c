@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2022 ByteDance Inc.
+// Copyright (c) 2021-2023 ByteDance Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,6 +20,8 @@
 //
 
 // Created by Kelun Cai (caikelun@bytedance.com) on 2021-04-11.
+
+// version 1.0.4
 
 #include "bytesig.h"
 
@@ -47,142 +49,86 @@
 #define BYTESIG_LOG(fmt, ...)
 #endif
 
-//
-// bionic's sigprocmask() / sigprocmask64() / sigaction() / sigaction64()
-//
+typedef enum {
+  BYTESIG_STATUS_UNAVAILABLE = 0,
+  BYTESIG_STATUS_SIG32 = 1,  // use sigset_t
+  BYTESIG_STATUS_SIG64 = 2   // use sigset64_t
+} bytesig_status_t;
+static bytesig_status_t bytesig_status = BYTESIG_STATUS_UNAVAILABLE;
 
-typedef int (*bytesig_libc_sigprocmask_t)(int how, const sigset_t *set, sigset_t *oldset);
-typedef int (*bytesig_libc_sigprocmask64_t)(int how, const sigset64_t *set, sigset64_t *oldset);
-typedef int (*bytesig_libc_sigaction64_t)(int, const struct sigaction64 *, struct sigaction64 *);
-typedef int (*bytesig_libc_sigaction_t)(int, const struct sigaction *, struct sigaction *);
-static bytesig_libc_sigprocmask64_t bytesig_libc_sigprocmask64 = NULL;
-static bytesig_libc_sigprocmask_t bytesig_libc_sigprocmask = NULL;
-static bytesig_libc_sigaction64_t bytesig_libc_sigaction64 = NULL;
-static bytesig_libc_sigaction_t bytesig_libc_sigaction = NULL;
+extern __attribute((weak)) int sigfillset64(sigset64_t *);
+extern __attribute((weak)) int sigemptyset64(sigset64_t *);
+extern __attribute((weak)) int sigaddset64(sigset64_t *, int);
+extern __attribute((weak)) int sigismember64(const sigset64_t *, int);
+
+typedef int (*bytesig_sigaction64_t)(int, const struct sigaction64 *, struct sigaction64 *);
+typedef int (*bytesig_sigaction_t)(int, const struct sigaction *, struct sigaction *);
+typedef int (*bytesig_sigprocmask64_t)(int, const sigset64_t *, sigset64_t *);
+typedef int (*bytesig_sigprocmask_t)(int, const sigset_t *, sigset_t *);
+
+static void *bytesig_sigaction;    // point to libc's sigaction64() or libc's sigaction()
+static void *bytesig_sigprocmask;  // point to libc's sigprocmask() or libc's sigprocmask64()
 
 __attribute__((constructor)) static void bytesig_ctor(void) {
   void *libc = dlopen("libc.so", RTLD_LOCAL);
-  if (__predict_true(NULL != libc)) {
-    // sigprocmask64() / sigprocmask()
-    bytesig_libc_sigprocmask64 = (bytesig_libc_sigprocmask64_t)dlsym(libc, "sigprocmask64");
-    if (NULL == bytesig_libc_sigprocmask64)
-      bytesig_libc_sigprocmask = (bytesig_libc_sigprocmask_t)dlsym(libc, "sigprocmask");
+  if (__predict_false(NULL == libc)) return;
 
-    // sigaction64() / sigaction()
-    bytesig_libc_sigaction64 = (bytesig_libc_sigaction64_t)dlsym(libc, "sigaction64");
-    if (NULL == bytesig_libc_sigaction64)
-      bytesig_libc_sigaction = (bytesig_libc_sigaction_t)dlsym(libc, "sigaction");
-
-    dlclose(libc);
+  if (__predict_true(NULL != sigfillset64 && NULL != sigemptyset64 && NULL != sigaddset64 &&
+                     NULL != sigismember64)) {
+    if (__predict_true(NULL != (bytesig_sigaction = dlsym(libc, "sigaction64")) &&
+                       NULL != (bytesig_sigprocmask = dlsym(libc, "sigprocmask64")))) {
+      bytesig_status = BYTESIG_STATUS_SIG64;
+      goto end;
+    }
   }
-}
 
-static int bytesig_check_symbols(void) {
-  if (__predict_false(NULL == bytesig_libc_sigprocmask64 && NULL == bytesig_libc_sigprocmask)) return -1;
-  if (__predict_false(NULL == bytesig_libc_sigaction64 && NULL == bytesig_libc_sigaction)) return -1;
-  return 0;
-}
-
-static int bytesig_real_sigprocmask(int how, const sigset_t *set, sigset_t *oldset) {
-  if (NULL != bytesig_libc_sigprocmask64) {
-    // struct sigset_t -> struct sigset64_t
-    sigset64_t set64;
-    if (NULL != set) {
-      memset(&set64, 0, sizeof(sigset64_t));
-      memcpy(&set64, set, sizeof(sigset_t));
-    }
-
-    // call bionic's sigprocmask64()
-    sigset64_t oldset64;
-    int result =
-        bytesig_libc_sigprocmask64(how, NULL != set ? &set64 : NULL, NULL != oldset ? &oldset64 : NULL);
-
-    // struct sigset64_t -> struct sigset_t
-    if (NULL != oldset) {
-      memcpy(oldset, &oldset64, sizeof(sigset_t));
-    }
-
-    return result;
-  } else {
-    return bytesig_libc_sigprocmask(how, set, oldset);
+  if (__predict_true(NULL != (bytesig_sigaction = dlsym(libc, "sigaction")) &&
+                     NULL != (bytesig_sigprocmask = dlsym(libc, "sigprocmask")))) {
+    bytesig_status = BYTESIG_STATUS_SIG32;
   }
+
+end:
+  dlclose(libc);
 }
-
-static int bytesig_real_sigaction(int signum, const struct sigaction *act, struct sigaction *oldact) {
-  if (NULL != bytesig_libc_sigaction64) {
-    // struct sigaction -> struct sigaction64
-    struct sigaction64 act64;
-    if (NULL != act) {
-      memset(&act64, 0, sizeof(struct sigaction64));
-      memcpy(&act64.sa_mask, &act->sa_mask, sizeof(sigset_t));
-      act64.sa_flags = act->sa_flags;
-      if ((unsigned int)(act->sa_flags) & (unsigned int)SA_SIGINFO)
-        act64.sa_sigaction = act->sa_sigaction;
-      else
-        act64.sa_handler = act->sa_handler;
-    }
-
-    // call bionic's sigaction64()
-    struct sigaction64 oldact64;
-    int result =
-        bytesig_libc_sigaction64(signum, NULL != act ? &act64 : NULL, NULL != oldact ? &oldact64 : NULL);
-
-    // struct sigaction64 -> struct sigaction
-    if (NULL != oldact) {
-      memset(oldact, 0, sizeof(struct sigaction));
-      memcpy(&oldact->sa_mask, &oldact64.sa_mask, sizeof(sigset_t));
-      oldact->sa_flags = oldact64.sa_flags;
-      if ((unsigned int)(oldact->sa_flags) & (unsigned int)SA_SIGINFO)
-        oldact->sa_sigaction = oldact64.sa_sigaction;
-      else
-        oldact->sa_handler = oldact64.sa_handler;
-    }
-
-    return result;
-  } else {
-    // call bionic's sigaction()
-    return bytesig_libc_sigaction(signum, act, oldact);
-  }
-}
-
-//
-// signal manager
-//
 
 #define BYTESIG_PROTECTED_THREADS_MAX 256
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wpadded"
 typedef struct {
-  pid_t tid;
-  sigjmp_buf *jbuf;
-} bytesig_thread_info_t;
-#pragma clang diagnostic pop
-
-typedef struct {
-  struct sigaction prev_action;
-  bytesig_thread_info_t protected_threads[BYTESIG_PROTECTED_THREADS_MAX];
+  pid_t tids[BYTESIG_PROTECTED_THREADS_MAX];
+  sigjmp_buf *jbufs[BYTESIG_PROTECTED_THREADS_MAX];
+  union {
+    struct sigaction64 prev_action64;
+    struct sigaction prev_action;
+  };
 } bytesig_signal_t;
+#pragma clang diagnostic pop
 
 // array index is signal number, corresponds to signals 1 to 31, except 9 and 19
 static bytesig_signal_t *bytesig_signal_array[__SIGRTMIN];
 
-static void bytesig_sigorset(sigset_t *dest, sigset_t *left, sigset_t *right) {
-  sigemptyset(dest);
-  for (size_t i = 1; i < sizeof(sigset_t) * CHAR_BIT; i++) {
-    if (sigismember(left, (int)i) == 1 || sigismember(right, (int)i) == 1) sigaddset(dest, (int)i);
-  }
+static void bytesig_sigorset64(sigset64_t *dest, sigset64_t *left, sigset64_t *right) {
+  sigemptyset64(dest);
+  for (size_t i = 1; i < sizeof(sigset64_t) * CHAR_BIT; i++)
+    if (sigismember64(left, (int)i) == 1 || sigismember64(right, (int)i) == 1) sigaddset64(dest, (int)i);
 }
 
-static void bytesig_handler(int signum, siginfo_t *siginfo, void *context) {
+static void bytesig_sigorset(sigset_t *dest, sigset_t *left, sigset_t *right) {
+  sigemptyset(dest);
+  for (size_t i = 1; i < sizeof(sigset_t) * CHAR_BIT; i++)
+    if (sigismember(left, (int)i) == 1 || sigismember(right, (int)i) == 1) sigaddset(dest, (int)i);
+}
+
+__attribute__((noinline)) static void bytesig_handler_internal(int signum, siginfo_t *siginfo,
+                                                               void *context) {
   bytesig_signal_t *sig = bytesig_signal_array[signum];
-  pid_t tid = gettid();
-  if (0 == tid) tid = (pid_t)syscall(SYS_gettid);
 
   // check protect info & do siglongjmp
+  pid_t tid = gettid();
+  if (__predict_false(0 == tid)) tid = (pid_t)syscall(SYS_gettid);
   for (size_t i = 0; i < BYTESIG_PROTECTED_THREADS_MAX; i++) {
-    bytesig_thread_info_t *thdinfo = &(sig->protected_threads[i]);
-    if (tid == __atomic_load_n(&(thdinfo->tid), __ATOMIC_RELAXED)) {
+    if (__predict_false(tid == __atomic_load_n(&(sig->tids[i]), __ATOMIC_RELAXED))) {
       BYTESIG_LOG("siglongjmp signal %d (code %d) at %zu", signum, siginfo->si_code, i);
 
       unsigned int ret_signum = (((unsigned int)signum & 0xFFU) << 16U);
@@ -193,68 +139,92 @@ static void bytesig_handler(int signum, siginfo_t *siginfo, void *context) {
         ret_code = (unsigned int)(-(siginfo->si_code)) & 0xFFU;
       int ret_val = (int)(ret_signum | ret_code);
 
-      siglongjmp(*(__atomic_load_n(&(thdinfo->jbuf), __ATOMIC_RELAXED)), ret_val);
+      siglongjmp(*(__atomic_load_n(&(sig->jbufs[i]), __ATOMIC_RELAXED)), ret_val);
     }
   }
 
-  // build signal mask for previous signal handler
-  sigset_t prev_mask;
-  bytesig_sigorset(&prev_mask, &(((ucontext_t *)context)->uc_sigmask), &(sig->prev_action.sa_mask));
+#define SET_THREAD_SIGNAL_MASK(suffix)                                                       \
+  do {                                                                                       \
+    sigset##suffix##_t prev_mask;                                                            \
+    bytesig_sigorset##suffix(&prev_mask, &(((ucontext_t *)context)->uc_sigmask##suffix),     \
+                             &(sig->prev_action##suffix.sa_mask));                           \
+    if (0 == ((unsigned int)(sig->prev_action##suffix.sa_flags) & (unsigned int)SA_NODEFER)) \
+      sigaddset##suffix(&prev_mask, signum);                                                 \
+    sigaddset##suffix(&prev_mask, SIGPIPE);                                                  \
+    sigaddset##suffix(&prev_mask, SIGUSR1);                                                  \
+    sigaddset##suffix(&prev_mask, SIGQUIT);                                                  \
+    ((bytesig_sigprocmask##suffix##_t)bytesig_sigprocmask)(SIG_SETMASK, &prev_mask, NULL);   \
+  } while (0)
 
-  // fix the signal mask
-  //
-  // (1) add the current signal number if SA_NODEFER is not set
-  if (0 == ((unsigned int)(sig->prev_action.sa_flags) & (unsigned int)SA_NODEFER))
-    sigaddset(&prev_mask, signum);
-  //
-  // (2) these three signals should always be masked, We don't want to cause trouble
-  sigaddset(&prev_mask, SIGPIPE);
-  sigaddset(&prev_mask, SIGUSR1);
-  sigaddset(&prev_mask, SIGQUIT);
+  // set thread signal mask
+  if (BYTESIG_STATUS_SIG64 == bytesig_status)
+    SET_THREAD_SIGNAL_MASK(64);
+  else
+    SET_THREAD_SIGNAL_MASK();
+}
 
-  // set signal mask for previous signal handler
-  bytesig_real_sigprocmask(SIG_SETMASK, &prev_mask, NULL);
+// https://llvm.org/docs/CodeGenerator.html#tail-call-optimization
+// https://clang.llvm.org/docs/AttributeReference.html#disable-tail-calls
+//__attribute__((disable_tail_calls))
+static void bytesig_handler(int signum, siginfo_t *siginfo, void *context) {
+  bytesig_handler_internal(signum, siginfo, context);
+
+#define CALL_PREVIOUS_SIGNAL_HANDLER(suffix)                            \
+  do {                                                                  \
+    if (__predict_true(sig->prev_action##suffix.sa_flags & SA_SIGINFO)) \
+      sig->prev_action##suffix.sa_sigaction(signum, siginfo, context);  \
+    else if (SIG_DFL != sig->prev_action##suffix.sa_handler &&          \
+             SIG_IGN != sig->prev_action##suffix.sa_handler)            \
+      sig->prev_action##suffix.sa_handler(signum);                      \
+  } while (0)
 
   // call previous signal handler
-  if ((unsigned int)(sig->prev_action.sa_flags) & (unsigned int)SA_SIGINFO) {
-    sig->prev_action.sa_sigaction(signum, siginfo, context);
-  } else {
-    if (SIG_DFL != sig->prev_action.sa_handler && SIG_IGN != sig->prev_action.sa_handler)
-      sig->prev_action.sa_handler(signum);
-  }
+  bytesig_signal_t *sig = bytesig_signal_array[signum];
+  if (BYTESIG_STATUS_SIG64 == bytesig_status)
+    CALL_PREVIOUS_SIGNAL_HANDLER(64);
+  else
+    CALL_PREVIOUS_SIGNAL_HANDLER();
 }
 
 int bytesig_init(int signum) {
-  int ret = -1;
-  static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
-
   if (__predict_false(signum <= 0 || signum >= __SIGRTMIN || signum == SIGKILL || signum == SIGSTOP))
     return -1;
-
-  // check symbols from bionic
-  if (__predict_false(0 != bytesig_check_symbols())) return -1;
-
+  if (__predict_false(BYTESIG_STATUS_UNAVAILABLE == bytesig_status)) return -1;
   if (__predict_false(NULL != bytesig_signal_array[signum])) return -1;
+
+  static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
   pthread_mutex_lock(&lock);
+  int ret = -1;
   if (__predict_false(NULL != bytesig_signal_array[signum])) goto end;
 
   bytesig_signal_t *sig = calloc(1, sizeof(bytesig_signal_t));
   if (__predict_false(NULL == sig)) goto end;
 
-  // register the signal with the kernel
-  // in our handler, we start off with all signals blocked
-  struct sigaction act;
-  memset(&act, 0, sizeof(struct sigaction));
-  sigfillset(&act.sa_mask);
-  act.sa_sigaction = bytesig_handler;
-  act.sa_flags = SA_SIGINFO | SA_ONSTACK | SA_RESTART;
-  if (__predict_false(0 != bytesig_real_sigaction(signum, &act, &sig->prev_action))) {
-    free(sig);
-    goto end;
-  }
+#define SA_EXPOSE_TAGBITS 0x00000800
+
+#define REGISTER_SIGNAL_HANDLER(suffix)                                                                     \
+  do {                                                                                                      \
+    struct sigaction##suffix act;                                                                           \
+    memset(&act, 0, sizeof(struct sigaction##suffix));                                                      \
+    sigfillset##suffix(&act.sa_mask);                                                                       \
+    act.sa_sigaction = bytesig_handler;                                                                     \
+    act.sa_flags = SA_SIGINFO | SA_ONSTACK | SA_RESTART | SA_EXPOSE_TAGBITS;                                \
+    if (__predict_false(                                                                                    \
+            0 !=                                                                                            \
+            ((bytesig_sigaction##suffix##_t)bytesig_sigaction)(signum, &act, &sig->prev_action##suffix))) { \
+      free(sig);                                                                                            \
+      goto end;                                                                                             \
+    }                                                                                                       \
+  } while (0)
+
+  // register the signal handler, we start off with all signals blocked
+  if (BYTESIG_STATUS_SIG64 == bytesig_status)
+    REGISTER_SIGNAL_HANDLER(64);
+  else
+    REGISTER_SIGNAL_HANDLER();
 
   bytesig_signal_array[signum] = sig;
-  ret = 0;
+  ret = 0;  // OK
 
 end:
   pthread_mutex_unlock(&lock);
@@ -264,38 +234,37 @@ end:
 void bytesig_protect(pid_t tid, sigjmp_buf *jbuf, const int signums[], size_t signums_cnt) {
   for (size_t i = 0; i < signums_cnt; i++) {
     int signum = signums[i];
-    if (signum <= 0 || signum >= __SIGRTMIN || signum == SIGKILL || signum == SIGSTOP) continue;
+    if (__predict_false(signum <= 0 || signum >= __SIGRTMIN || signum == SIGKILL || signum == SIGSTOP))
+      continue;
 
     bytesig_signal_t *sig = bytesig_signal_array[signum];
-    if (NULL == sig) continue;
+    if (__predict_false(NULL == sig)) continue;
 
     // check repeated thread
     bool repeated = false;
     for (size_t j = 0; j < BYTESIG_PROTECTED_THREADS_MAX; j++) {
-      bytesig_thread_info_t *thdinfo = &sig->protected_threads[j];
-      if (tid == thdinfo->tid) {
+      if (__predict_false(tid == sig->tids[j])) {
         repeated = true;
         break;
       }
     }
-    if (repeated) continue;
+    if (__predict_false(repeated)) continue;
 
     // save thread-ID and jump buffer
     size_t j = 0;
     while (1) {
-      bytesig_thread_info_t *thdinfo = &sig->protected_threads[j];
-      if (0 == thdinfo->tid) {
+      if (0 == sig->tids[j]) {
         pid_t expected = 0;
-        if (__atomic_compare_exchange_n(&thdinfo->tid, &expected, tid, false, __ATOMIC_ACQUIRE,
+        if (__atomic_compare_exchange_n(&sig->tids[j], &expected, tid, false, __ATOMIC_ACQUIRE,
                                         __ATOMIC_RELAXED)) {
-          thdinfo->jbuf = jbuf;
+          sig->jbufs[j] = jbuf;
           BYTESIG_LOG("protect_start signal %d at %zu", signum, j);
           break;  // finished
         }
       }
 
       j++;
-      if (BYTESIG_PROTECTED_THREADS_MAX == j) j = 0;
+      if (__predict_false(BYTESIG_PROTECTED_THREADS_MAX == j)) j = 0;
     }
   }
 }
@@ -303,17 +272,17 @@ void bytesig_protect(pid_t tid, sigjmp_buf *jbuf, const int signums[], size_t si
 void bytesig_unprotect(pid_t tid, const int signums[], size_t signums_cnt) {
   for (size_t i = 0; i < signums_cnt; i++) {
     int signum = signums[i];
-    if (signum <= 0 || signum >= __SIGRTMIN || signum == SIGKILL || signum == SIGSTOP) continue;
+    if (__predict_false(signum <= 0 || signum >= __SIGRTMIN || signum == SIGKILL || signum == SIGSTOP))
+      continue;
 
     bytesig_signal_t *sig = bytesig_signal_array[signum];
-    if (NULL == sig) continue;
+    if (__predict_false(NULL == sig)) continue;
 
     // free thread-ID and jump buffer
     for (size_t j = 0; j < BYTESIG_PROTECTED_THREADS_MAX; j++) {
-      bytesig_thread_info_t *thdinfo = &(sig->protected_threads[j]);
-      if (tid == thdinfo->tid) {
-        thdinfo->jbuf = NULL;
-        __atomic_store_n(&thdinfo->tid, 0, __ATOMIC_RELEASE);
+      if (tid == sig->tids[j]) {
+        sig->jbufs[j] = NULL;
+        __atomic_store_n(&sig->tids[j], 0, __ATOMIC_RELEASE);
         BYTESIG_LOG("protect_end signal %d at %zu", signum, j);
         break;  // finished
       }
