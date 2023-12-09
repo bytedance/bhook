@@ -290,8 +290,8 @@ static void *bh_dl_monitor_proxy_dlopen(const char *filename, int flags) {
     bh_dl_monitor_post_dlopen(bh_dl_monitor_post_dlopen_arg);
   }
 
-  BYTEHOOK_POP_STACK();
   bh_dl_monitor_call_cb_post(filename, NULL != handle ? 0 : -1);
+  BYTEHOOK_POP_STACK();
   return handle;
 }
 
@@ -328,8 +328,8 @@ static void *bh_dl_monitor_proxy_android_dlopen_ext(const char *filename, int fl
     bh_dl_monitor_post_dlopen(bh_dl_monitor_post_dlopen_arg);
   }
 
-  BYTEHOOK_POP_STACK();
   bh_dl_monitor_call_cb_post(filename, NULL != handle ? 0 : -1);
+  BYTEHOOK_POP_STACK();
   return handle;
 }
 
@@ -353,8 +353,8 @@ static void *bh_dl_monitor_proxy_loader_dlopen(const char *filename, int flags, 
     bh_dl_monitor_post_dlopen(bh_dl_monitor_post_dlopen_arg);
   }
 
-  BYTEHOOK_POP_STACK();
   bh_dl_monitor_call_cb_post(filename, NULL != handle ? 0 : -1);
+  BYTEHOOK_POP_STACK();
   return handle;
 }
 
@@ -380,8 +380,8 @@ static void *bh_dl_monitor_proxy_loader_android_dlopen_ext(const char *filename,
     bh_dl_monitor_post_dlopen(bh_dl_monitor_post_dlopen_arg);
   }
 
-  BYTEHOOK_POP_STACK();
   bh_dl_monitor_call_cb_post(filename, NULL != handle ? 0 : -1);
+  BYTEHOOK_POP_STACK();
   return handle;
 }
 
