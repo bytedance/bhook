@@ -35,6 +35,13 @@
 #include "bh_log.h"
 #include "bh_util.h"
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreserved-id-macro"
+#ifndef __ANDROID_API_U__
+#define __ANDROID_API_U__ 34
+#endif
+#pragma clang diagnostic pop
+
 typedef struct {
   // bits:     name:    description:
   // 15-14     type     mutex type, can be 0 (normal), 1 (recursive), 2 (errorcheck)
@@ -123,8 +130,10 @@ int bh_linker_init(void) {
   if (__ANDROID_API_L__ == api_level || __ANDROID_API_L_MR1__ == api_level ||
       __ANDROID_API_N__ == api_level || __ANDROID_API_N_MR1__ == api_level ||
       bh_linker_g_dl_mutex_compatible) {
-    if (NULL == (bh_linker_g_dl_mutex = (pthread_mutex_t *)(bh_dl_dsym(linker, BH_CONST_SYM_G_DL_MUTEX))))
-      goto err;
+    bh_linker_g_dl_mutex = (pthread_mutex_t *)(bh_dl_dsym(linker, BH_CONST_SYM_G_DL_MUTEX));
+    if (NULL == bh_linker_g_dl_mutex && api_level >= __ANDROID_API_U__)
+      bh_linker_g_dl_mutex = (pthread_mutex_t *)(bh_dl_dsym(linker, BH_CONST_SYM_G_DL_MUTEX_U_QPR2));
+    if (NULL == bh_linker_g_dl_mutex) goto err;
   }
 
   // for Android 7.0, 7.1

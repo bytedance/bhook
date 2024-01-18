@@ -45,6 +45,7 @@
 #define BH_CONST_SYM_LOADER_ANDROID_DLOPEN_EXT "__loader_android_dlopen_ext"
 #define BH_CONST_SYM_DO_DLOPEN                 "__dl__Z9do_dlopenPKciPK17android_dlextinfoPv"
 #define BH_CONST_SYM_G_DL_MUTEX                "__dl__ZL10g_dl_mutex"
+#define BH_CONST_SYM_G_DL_MUTEX_U_QPR2         "__dl_g_dl_mutex"
 #define BH_CONST_SYM_LINKER_GET_ERROR_BUFFER   "__dl__Z23linker_get_error_bufferv"
 #define BH_CONST_SYM_BIONIC_FORMAT_DLERROR     "__dl__ZL23__bionic_format_dlerrorPKcS0_"
 #define BH_CONST_SYM_CFI_SLOWPATH              "__cfi_slowpath"
