@@ -128,7 +128,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
   if (__predict_false(NULL == env || NULL == *env)) return JNI_ERR;
 
   jclass cls;
-  if (__predict_false(NULL == (cls = (*env)->FindClass(env, BH_JNI_CLASS_NAME)))) return JNI_ERR;
+  if (__predict_false(NULL == (cls = (*env)->FindClass(env, BH_JNI_CLASS_NAME)))) return BH_JNI_VERSION;
 
   JNINativeMethod m[] = {{"nativeGetVersion", "()Ljava/lang/String;", (void *)bh_jni_get_version},
                          {"nativeInit", "(IZ)I", (void *)bh_jni_init},
