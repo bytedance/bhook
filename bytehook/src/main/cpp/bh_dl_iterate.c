@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 ByteDance, Inc.
+// Copyright (c) 2020-2024 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -59,35 +59,7 @@
  */
 
 extern __attribute((weak)) int dl_iterate_phdr(int (*)(struct dl_phdr_info *, size_t, void *), void *);
-
-static int bh_dl_iterate_by_linker_cb(struct dl_phdr_info *info, size_t size, void *arg) {
-  // ignore invalid ELF
-  if (0 == info->dlpi_addr || NULL == info->dlpi_name || '\0' == info->dlpi_name[0]) return 0;
-
-  // callback
-  uintptr_t *pkg = (uintptr_t *)arg;
-  int (*callback)(struct dl_phdr_info *, size_t, void *) =
-      (int (*)(struct dl_phdr_info *, size_t, void *)) * pkg++;
-  void *data = (void *)*pkg;
-  return callback(info, size, data);
-}
-
-static int bh_dl_iterate_by_linker(int (*callback)(struct dl_phdr_info *, size_t, void *), void *data) {
-  BH_LOG_INFO("DL iterate: iterate by dl_iterate_phdr");
-
-  if (NULL == dl_iterate_phdr) return -1;
-
-  int api_level = bh_util_get_api_level();
-
-  if (__ANDROID_API_L__ == api_level || __ANDROID_API_L_MR1__ == api_level) bh_linker_lock();
-  uintptr_t pkg[2] = {(uintptr_t)callback, (uintptr_t)data};
-  dl_iterate_phdr(bh_dl_iterate_by_linker_cb, pkg);
-  if (__ANDROID_API_L__ == api_level || __ANDROID_API_L_MR1__ == api_level) bh_linker_unlock();
-
-  return 0;
-}
-
-#if (defined(__arm__) || defined(__i386__)) && __ANDROID_API__ < __ANDROID_API_L__
+extern __attribute((weak)) unsigned long int getauxval(unsigned long int);
 
 static uintptr_t bh_dl_iterate_get_min_vaddr(struct dl_phdr_info *info) {
   uintptr_t min_vaddr = UINTPTR_MAX;
@@ -100,7 +72,78 @@ static uintptr_t bh_dl_iterate_get_min_vaddr(struct dl_phdr_info *info) {
   return min_vaddr;
 }
 
-static int bh_dl_iterate_by_maps(int (*callback)(struct dl_phdr_info *, size_t, void *), void *data) {
+static int bh_dl_find_from_auxv(unsigned long type, const char *pathname, struct dl_phdr_info *info) {
+  if (NULL == getauxval) return -1;  // API level < 18
+  uintptr_t val = (uintptr_t)getauxval(type);
+  if (0 == val) return -1;
+
+  // get base
+  uintptr_t base = (AT_PHDR == type ? (val & (~0xffful)) : val);
+  if (0 != memcmp((void *)base, ELFMAG, SELFMAG)) return -1;
+
+  // get ELF info
+  ElfW(Ehdr) *ehdr = (ElfW(Ehdr) *)base;
+  info->dlpi_phdr = (const ElfW(Phdr) *)(base + ehdr->e_phoff);
+  info->dlpi_phnum = ehdr->e_phnum;
+
+  // get load_bias
+  uintptr_t min_vaddr = bh_dl_iterate_get_min_vaddr(info);
+  if (UINTPTR_MAX == min_vaddr || base < min_vaddr) return -1;
+  info->dlpi_addr = base - min_vaddr;
+
+  info->dlpi_name = pathname;
+  return 0;
+}
+
+static int bh_dl_iterate_by_linker_cb(struct dl_phdr_info *info, size_t size, void *arg) {
+  // ignore invalid ELF
+  if (0 == info->dlpi_addr || NULL == info->dlpi_name || '\0' == info->dlpi_name[0]) return 0;
+
+  uintptr_t *pkg = (uintptr_t *)arg;
+  bh_dl_iterate_phdr_cb_t callback = (bh_dl_iterate_phdr_cb_t)*pkg++;
+  void *data = (void *)*pkg++;
+  uintptr_t linker_load_bias = *pkg++;
+  uintptr_t app_process_load_bias = *pkg++;
+
+  // ignore linker and app_process
+  if (linker_load_bias == info->dlpi_addr || app_process_load_bias == info->dlpi_addr) return 0;
+
+  // do callback
+  return callback(info, size, data);
+}
+
+static int bh_dl_iterate_by_linker(bh_dl_iterate_phdr_cb_t callback, void *data) {
+  BH_LOG_INFO("DL iterate: iterate by dl_iterate_phdr");
+  if (NULL == dl_iterate_phdr) return -1;
+  int r;
+
+  // always get linker and app_process form auxv, and do callback
+  struct dl_phdr_info info;
+  uintptr_t linker_load_bias = UINTPTR_MAX;
+  if (0 == bh_dl_find_from_auxv(AT_BASE, BH_CONST_PATHNAME_LINKER, &info)) {
+    r = callback(&info, sizeof(struct dl_phdr_info), data);
+    if (0 != r) return r;
+    linker_load_bias = info.dlpi_addr;
+  }
+  uintptr_t app_process_load_bias = UINTPTR_MAX;
+  if (0 == bh_dl_find_from_auxv(AT_PHDR, BH_CONST_PATHNAME_APP_PROCESS, &info)) {
+    r = callback(&info, sizeof(struct dl_phdr_info), data);
+    if (0 != r) return r;
+    app_process_load_bias = info.dlpi_addr;
+  }
+
+  int api_level = bh_util_get_api_level();
+  if (__ANDROID_API_L__ == api_level || __ANDROID_API_L_MR1__ == api_level) bh_linker_lock();
+  uintptr_t pkg[4] = {(uintptr_t)callback, (uintptr_t)data, linker_load_bias, app_process_load_bias};
+  r = dl_iterate_phdr(bh_dl_iterate_by_linker_cb, pkg);
+  if (__ANDROID_API_L__ == api_level || __ANDROID_API_L_MR1__ == api_level) bh_linker_unlock();
+
+  return r;
+}
+
+#if (defined(__arm__) || defined(__i386__)) && __ANDROID_API__ < __ANDROID_API_L__
+
+static int bh_dl_iterate_by_maps(bh_dl_iterate_phdr_cb_t callback, void *data) {
   BH_LOG_INFO("DL iterate: iterate by maps");
 
   bh_linker_lock();
@@ -167,7 +210,7 @@ static int bh_dl_iterate_by_maps(int (*callback)(struct dl_phdr_info *, size_t, 
 
       // get load bias
       uintptr_t min_vaddr = bh_dl_iterate_get_min_vaddr(&info);
-      if (UINTPTR_MAX == min_vaddr) goto clean;  // ignore invalid ELF
+      if (UINTPTR_MAX == min_vaddr) goto clean;
       info.dlpi_addr = (ElfW(Addr))(base - min_vaddr);
 
       // callback
@@ -187,7 +230,7 @@ end:
 
 #endif
 
-int bh_dl_iterate(int (*callback)(struct dl_phdr_info *, size_t, void *), void *data) {
+int bh_dl_iterate(bh_dl_iterate_phdr_cb_t callback, void *data) {
   // iterate by /proc/self/maps in Android 4.x (Android 4.x only supports arm32 and x86)
 #if (defined(__arm__) || defined(__i386__)) && __ANDROID_API__ < __ANDROID_API_L__
   if (bh_util_get_api_level() < __ANDROID_API_L__) return bh_dl_iterate_by_maps(callback, data);

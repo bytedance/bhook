@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 ByteDance, Inc.
+// Copyright (c) 2020-2024 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -43,11 +43,27 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define PAGE_START(addr) ((addr) & (uintptr_t)PAGE_MASK)
+static size_t bh_util_page_size = 0;
+
+__attribute__((constructor)) static void bh_util_ctor(void) {
+  bh_util_page_size = (size_t)getpagesize();
+}
+
+size_t bh_util_get_page_size(void) {
+  return bh_util_page_size;
+}
+
+uintptr_t bh_util_page_start(uintptr_t x) {
+  return x & ~(bh_util_page_size - 1);
+}
+
+uintptr_t bh_util_page_end(uintptr_t x) {
+  return bh_util_page_start(x + bh_util_page_size - 1);
+}
 
 int bh_util_set_addr_protect(void *addr, int prot) {
-  uintptr_t start_addr = PAGE_START((uintptr_t)addr);
-  uintptr_t end_addr = PAGE_START((uintptr_t)addr + sizeof(uintptr_t) - 1) + PAGE_SIZE;
+  uintptr_t start_addr = bh_util_page_start((uintptr_t)addr);
+  uintptr_t end_addr = bh_util_page_end((uintptr_t)addr + sizeof(uintptr_t));
   size_t size = end_addr - start_addr;
 
   if (0 != mprotect((void *)start_addr, size, prot)) return -1;
@@ -55,12 +71,16 @@ int bh_util_set_addr_protect(void *addr, int prot) {
 }
 
 int bh_util_set_protect(void *start, void *end, int prot) {
-  uintptr_t start_addr = PAGE_START((uintptr_t)start);
-  uintptr_t end_addr = PAGE_START((uintptr_t)end - 1) + PAGE_SIZE;
+  uintptr_t start_addr = bh_util_page_start((uintptr_t)start);
+  uintptr_t end_addr = bh_util_page_end((uintptr_t)end);
   size_t size = end_addr - start_addr;
 
   if (0 != mprotect((void *)start_addr, size, prot)) return -1;
   return 0;
+}
+
+void bh_util_clear_cache(uintptr_t addr, size_t len) {
+  __builtin___clear_cache((char *)addr, (char *)(addr + len));
 }
 
 bool bh_util_starts_with(const char *str, const char *start) {
@@ -110,17 +130,16 @@ end:
 }
 
 int bh_util_get_api_level(void) {
-  static int bh_util_api_level = -1;
+  static int api_level_cached = -1;
 
-  if (bh_util_api_level < 0) {
-    int api_level = android_get_device_api_level();
-    if (api_level < 0) api_level = bh_util_get_api_level_from_build_prop();  // compatible with unusual models
-    if (api_level < __ANDROID_API_J__) api_level = __ANDROID_API_J__;
+  int api_level = __atomic_load_n(&api_level_cached, __ATOMIC_ACQUIRE);
+  if (__predict_true(api_level > 0)) return api_level;
 
-    __atomic_store_n(&bh_util_api_level, api_level, __ATOMIC_SEQ_CST);
-  }
-
-  return bh_util_api_level;
+  api_level = android_get_device_api_level();
+  if (__predict_false(api_level < 0)) api_level = bh_util_get_api_level_from_build_prop();
+  if (__predict_false(api_level < __ANDROID_API_J__)) api_level = __ANDROID_API_J__;
+  __atomic_store_n(&api_level_cached, api_level, __ATOMIC_RELEASE);
+  return api_level;
 }
 
 int bh_util_write(int fd, const char *buf, size_t buf_len) {

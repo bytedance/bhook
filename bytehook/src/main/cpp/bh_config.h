@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 ByteDance, Inc.
+// Copyright (c) 2020-2024 ByteDance Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,19 +19,24 @@
 // SOFTWARE.
 //
 
-// Created by Kelun Cai (caikelun@bytedance.com) on 2020-06-02.
+// Created by Kelun Cai (caikelun@bytedance.com) on 2024-09-12.
 
 #pragma once
-#include <pthread.h>
-#include <stdbool.h>
 
-#include "bh_elf.h"
-#include "bh_task.h"
-#include "queue.h"
+// Global debugging.
+//
+// Note that in some cases these logs themselves can cause a crash.
+//
+// #define BH_CONFIG_DEBUG
 
-typedef struct bh_hook_manager bh_hook_manager_t;
+// Operation record of hook and unhook.
+//
+// Disabling it can reduce hook/unhook latency, memory footprint and file size.
+//
+#define BH_CONFIG_OPERATION_RECORDS
 
-bh_hook_manager_t *bh_hook_manager_create(void);
-
-void bh_hook_manager_hook(bh_hook_manager_t *self, bh_task_t *task, bh_elf_t *caller_elf);
-void bh_hook_manager_unhook(bh_hook_manager_t *self, bh_task_t *task, bh_elf_t *caller_elf);
+// Crash signal protection.
+//
+// Do not disable it in a production environment.
+//
+#define BH_CONFIG_SIG_PROT

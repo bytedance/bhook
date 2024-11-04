@@ -15,3 +15,4 @@ dependencyResolutionManagement {
 rootProject.name = "bhook"
 include ':bytehook'
 include ':bytehook_sample'
+include ':bytehook_systest'

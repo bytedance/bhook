@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 ByteDance, Inc.
+// Copyright (c) 2020-2024 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,40 +19,22 @@
 // SOFTWARE.
 //
 
-// Created by Li Zhang (zhangli.foxleezh@bytedance.com) on 2020-06-21.
+// Created by Kelun Cai (caikelun@bytedance.com) on 2024-09-24.
 
-#if defined(__arm__)
+#pragma once
 
-#include "bh_trampo.h"
+#include <stdint.h>
 
-__attribute__((naked)) void bh_trampo_template(void) {
-  __asm__(
-      // Save caller-saved registers
-      "push  { r0 - r3, lr }     \n"
+#define BH_ARRAY_STACK_CAP 8
 
-      // Call bh_trampo_push_stack()
-      "ldr   r0, .L_hook_ptr     \n"
-      "mov   r1, lr              \n"
-      "ldr   ip, .L_push_stack   \n"
-      "blx   ip                  \n"
+typedef struct {
+  uintptr_t *data;
+  size_t count;
+  size_t cap;
+  uintptr_t stack[BH_ARRAY_STACK_CAP];
+} bh_array_t;
 
-      // Save the hook function's address to IP register
-      "mov   ip, r0              \n"
+#define BH_ARRAY_INITIALIZER(self) {.data = (self)->stack, .count = 0, .cap = BH_ARRAY_STACK_CAP}
 
-      // Restore caller-saved registers
-      "pop   { r0 - r3, lr }     \n"
-
-      // Call hook function
-      "bx    ip                  \n"
-
-      "bh_trampo_data:"
-      ".global bh_trampo_data;"
-      ".L_push_stack:"
-      ".word 0;"
-      ".L_hook_ptr:"
-      ".word 0;");
-}
-
-#else
-typedef int make_iso_happy;
-#endif
+int bh_array_push(bh_array_t *self, uintptr_t value);
+void bh_array_free(bh_array_t *self);

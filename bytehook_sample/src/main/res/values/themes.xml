@@ -26,6 +26,9 @@
         <item name="android:textSize">18sp</item>
         <item name="android:textAllCaps">false</item>
     </style>
+    <style name="Theme.Button.Red" parent="Theme.Button">
+        <item name="android:textColor">#B1241A</item>
+    </style>
     <style name="Theme.TextView.Top" parent="Widget.MaterialComponents.TextView">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>

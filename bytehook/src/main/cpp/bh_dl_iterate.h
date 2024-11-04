@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 ByteDance, Inc.
+// Copyright (c) 2020-2024 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,4 +25,5 @@
 #include <link.h>
 #include <stddef.h>
 
-int bh_dl_iterate(int (*callback)(struct dl_phdr_info *, size_t, void *), void *data);
+typedef int (*bh_dl_iterate_phdr_cb_t)(struct dl_phdr_info *info, size_t size, void *data);
+int bh_dl_iterate(bh_dl_iterate_phdr_cb_t callback, void *data);

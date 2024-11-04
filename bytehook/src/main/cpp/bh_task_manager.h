@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 ByteDance, Inc.
+// Copyright (c) 2020-2024 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,12 +24,8 @@
 #pragma once
 #include "bh_task.h"
 
-typedef struct bh_task_manager bh_task_manager_t;
+void bh_task_manager_add(bh_task_t *task);
+void bh_task_manager_del(bh_task_t *task);
 
-bh_task_manager_t *bh_task_manager_create(void);
-
-void bh_task_manager_add(bh_task_manager_t *self, bh_task_t *task);
-void bh_task_manager_del(bh_task_manager_t *self, bh_task_t *task);
-
-void bh_task_manager_hook(bh_task_manager_t *self, bh_task_t *task);
-int bh_task_manager_unhook(bh_task_manager_t *self, bh_task_t *task);
+void bh_task_manager_hook(bh_task_t *task);
+int bh_task_manager_unhook(bh_task_t *task);

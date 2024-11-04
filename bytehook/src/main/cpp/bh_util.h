@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 ByteDance, Inc.
+// Copyright (c) 2020-2024 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,13 @@
 #include <stdint.h>
 #include <time.h>
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreserved-id-macro"
+#ifndef __ANDROID_API_U__
+#define __ANDROID_API_U__ 34
+#endif
+#pragma clang diagnostic pop
+
 #if defined(__LP64__)
 #define BH_UTIL_PRIxADDR "016" PRIxPTR
 #else
@@ -47,8 +54,17 @@
     _rc;                                   \
   })
 
+#define BH_UTIL_ALIGN_START(x, align) ((uintptr_t)(x) & ~((uintptr_t)(align) - 1))
+#define BH_UTIL_ALIGN_END(x, align)   (((uintptr_t)(x) + (uintptr_t)(align) - 1) & ~((uintptr_t)(align) - 1))
+
+size_t bh_util_get_page_size(void);
+uintptr_t bh_util_page_start(uintptr_t x);
+uintptr_t bh_util_page_end(uintptr_t x);
+
 int bh_util_set_addr_protect(void *addr, int prot);
 int bh_util_set_protect(void *start, void *end, int prot);
+
+void bh_util_clear_cache(uintptr_t addr, size_t len);
 
 bool bh_util_starts_with(const char *str, const char *start);
 bool bh_util_ends_with(const char *str, const char *ending);

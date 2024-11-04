@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 ByteDance, Inc.
+// Copyright (c) 2020-2024 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,10 @@
 // Created by Kelun Cai (caikelun@bytedance.com) on 2021-10-18.
 
 #include "bh_recorder.h"
+
+#include "bh_config.h"
+
+#ifdef BH_CONFIG_OPERATION_RECORDS
 
 #include <dlfcn.h>
 #include <inttypes.h>
@@ -426,3 +430,34 @@ void bh_recorder_dump(int fd, uint32_t item_flags) {
   if (fd < 0) return;
   bh_recorder_output(NULL, fd, item_flags);
 }
+
+#else
+
+bool bh_recorder_get_recordable(void) {
+  return false;
+}
+void bh_recorder_set_recordable(bool recordable) {
+  (void)recordable;
+}
+
+int bh_recorder_add_hook(int error_number, const char *lib_name, const char *sym_name, uintptr_t new_addr,
+                         uintptr_t stub, uintptr_t caller_addr) {
+  (void)error_number, (void)lib_name, (void)sym_name, (void)new_addr, (void)stub, (void)caller_addr;
+  return 0;
+}
+
+int bh_recorder_add_unhook(int error_number, uintptr_t stub, uintptr_t caller_addr) {
+  (void)error_number, (void)stub, (void)caller_addr;
+  return 0;
+}
+
+char *bh_recorder_get(uint32_t item_flags) {
+  (void)item_flags;
+  return NULL;
+}
+
+void bh_recorder_dump(int fd, uint32_t item_flags) {
+  (void)fd, (void)item_flags;
+}
+
+#endif

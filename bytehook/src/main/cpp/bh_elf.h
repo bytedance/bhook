@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 ByteDance, Inc.
+// Copyright (c) 2020-2024 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -29,8 +29,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "bh_array.h"
 #include "queue.h"
-#include "tree.h"
 
 // API level >= 21:
 // https://android.googlesource.com/platform/bionic/+/refs/heads/master/linker/linker_common_types.h Android
@@ -44,31 +44,37 @@ typedef ElfW(Rel) Elf_Reloc;
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wpadded"
 
-// program header list
-typedef struct bh_elf_ph {
-  uintptr_t start;
-  uintptr_t end;
-  int protect;
-  SLIST_ENTRY(bh_elf_ph, ) link;
-} bh_elf_ph_t;
-typedef SLIST_HEAD(bh_elf_ph_list, bh_elf_ph, ) bh_elf_ph_list_t;
-
-// ELF info
+// elf
 typedef struct bh_elf {
-  bool exist;
-  pthread_mutex_t hook_lock;
+  // reference count & lazy abandon
+  int ref_count;
+  pthread_mutex_t ref_mutex;
+  pthread_cond_t ref_cond;
+  int waiter_count;
+  time_t abandoned_ts;
+
+  // switches foreach hooked symbols
+  void *switch_mgr;
+
+  // status
   bool error;
+  bool exist;
+
+  // for CFI hook
 #ifdef __LP64__
   bool cfi_hooked;
   bool cfi_hooked_ok;
   pthread_mutex_t cfi_hook_lock;
 #endif
 
+  // ELF base info
+  // ......
+
   const char *pathname;
   uintptr_t load_bias;
   const ElfW(Phdr) *dlpi_phdr;
   size_t dlpi_phnum;
-  bool dyn_parsed;
+  bool is_dyn_parsed;
   pthread_mutex_t dyn_parse_lock;
 
   const Elf_Reloc *rel_plt;  //.rel.plt / .rela.plt (relocation table for function)
@@ -102,8 +108,8 @@ typedef struct bh_elf {
     uint32_t bloom_shift;
   } gnu_hash;
 
-  RB_ENTRY(bh_elf) link;
   TAILQ_ENTRY(bh_elf, ) link_list;
+  TAILQ_ENTRY(bh_elf, ) link_list_new;
 } bh_elf_t;
 typedef TAILQ_HEAD(bh_elf_list, bh_elf, ) bh_elf_list_t;
 
@@ -111,6 +117,10 @@ typedef TAILQ_HEAD(bh_elf_list, bh_elf, ) bh_elf_list_t;
 
 bh_elf_t *bh_elf_create(struct dl_phdr_info *info);
 void bh_elf_destroy(bh_elf_t **self);
+
+void bh_elf_increment_ref_count(bh_elf_t *self);
+void bh_elf_decrement_ref_count(bh_elf_t *self);
+int bh_elf_get_ref_count(bh_elf_t *self);
 
 bool bh_elf_is_match(bh_elf_t *self, const char *name);
 
@@ -129,23 +139,11 @@ void bh_elf_set_exist(bh_elf_t *self);
 void bh_elf_unset_exist(bh_elf_t *self);
 bool bh_elf_is_exist(bh_elf_t *self);
 
-// get protect info by address
-int bh_elf_get_protect_by_addr(bh_elf_t *self, void *addr);
-
-// find export function symbol info by symbol name
-// signal-safe
-ElfW(Sym) *bh_elf_find_export_func_symbol_by_symbol_name(bh_elf_t *self, const char *sym_name);
-
-// find import function address'address list by symbol name form .rel.plt and .rel.dyn
-// signal-safe
-size_t bh_elf_find_import_func_addr_by_symbol_name(bh_elf_t *self, const char *sym_name, void **addr_array,
-                                                   size_t addr_array_cap);
-
-// find import function address'address list by callee address form .rel.plt and .rel.dyn
-// signal-safe
-size_t bh_elf_find_import_func_addr_by_callee_addr(bh_elf_t *self, void *target_addr, void **addr_array,
-                                                   size_t addr_array_cap);
-
 // find export function address by symbol name (equal to dlsym())
 // signal-safe
 void *bh_elf_find_export_func_addr_by_symbol_name(bh_elf_t *self, const char *sym_name);
+
+// find import-function-symbol-info and import function address'address list by symbol name and callee-address
+// signal-safe
+ElfW(Sym) *bh_elf_find_symbol_and_gots_by_symbol_name(bh_elf_t *self, const char *sym_name, void *callee_addr,
+                                                      bh_array_t *gots, bh_array_t *prots);

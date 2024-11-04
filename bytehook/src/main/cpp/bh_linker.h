@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 ByteDance, Inc.
+// Copyright (c) 2020-2024 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -47,5 +47,23 @@ int bh_linker_init(void);
 void bh_linker_lock(void);
 void bh_linker_unlock(void);
 bool bh_linker_is_in_lock(void);
-void bh_linker_add_lock_count(void);
-void bh_linker_sub_lock_count(void);
+
+bool bh_linker_is_use_basename(void);
+bool bh_linker_elf_is_match(const char *linker_elf_name, const char *external_elf_name);
+
+// used to check maybe-support for dl-init-fini-monitor at compile time
+#if defined(__aarch64__) || defined(__arm__)
+#define BH_LINKER_MAYBE_SUPPORT_DL_INIT_FINI_MONITOR 1
+#else
+#define BH_LINKER_MAYBE_SUPPORT_DL_INIT_FINI_MONITOR 0
+#endif
+
+// used to check maybe-NOT-support for dl-init-fini-monitor at compile time
+#if defined(__aarch64__) || (defined(__arm__) && __ANDROID_API__ >= __ANDROID_API_L__)
+#define BH_LINKER_MAYBE_NOT_SUPPORT_DL_INIT_FINI_MONITOR 0
+#else
+#define BH_LINKER_MAYBE_NOT_SUPPORT_DL_INIT_FINI_MONITOR 1
+#endif
+
+// used to check confirmed-support for dl-init-fini-monitor at runtime
+bool bh_linker_is_support_dl_init_fini_monitor(void);

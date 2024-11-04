@@ -6,6 +6,7 @@ import subprocess
 
 path_list = ['bytehook/src/main/cpp/include',
              'bytehook/src/main/cpp',
+             'bytehook_systest/src/main/cpp',
              'bytehook_sample/src/main/cpp']
 suffix_tuple = ('.h', '.c')
 

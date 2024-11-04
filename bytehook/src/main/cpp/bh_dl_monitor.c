@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 ByteDance, Inc.
+// Copyright (c) 2020-2024 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -32,9 +32,10 @@
 #include <unistd.h>
 
 #include "bh_const.h"
-#include "bh_core.h"
 #include "bh_linker.h"
 #include "bh_log.h"
+#include "bh_task.h"
+#include "bh_task_manager.h"
 #include "bh_util.h"
 #include "bytehook.h"
 #include "queue.h"
@@ -86,15 +87,6 @@ static bh_dl_monitor_loader_dlopen_t bh_dl_monitor_orig_loader_dlopen = NULL;
 static bh_dl_monitor_loader_android_dlopen_ext_t bh_dl_monitor_orig_loader_android_dlopen_ext = NULL;
 static bh_dl_monitor_dlclose_t bh_dl_monitor_orig_dlclose = NULL;
 static bh_dl_monitor_loader_dlclose_t bh_dl_monitor_orig_loader_dlclose = NULL;
-
-// hook task's stub for unhooking
-// Reset to NULL after uninit.
-static bytehook_stub_t bh_dl_monitor_stub_dlopen = NULL;
-static bytehook_stub_t bh_dl_monitor_stub_android_dlopen_ext = NULL;
-static bytehook_stub_t bh_dl_monitor_stub_loader_dlopen = NULL;
-static bytehook_stub_t bh_dl_monitor_stub_loader_android_dlopen_ext = NULL;
-static bytehook_stub_t bh_dl_monitor_stub_dlclose = NULL;
-static bytehook_stub_t bh_dl_monitor_stub_loader_dlclose = NULL;
 
 // the callback which will be called after dlopen() or android_dlopen_ext() and dlclose() successful
 // Keep these values after uninit to prevent the concurrent access from crashing.
@@ -245,17 +237,18 @@ static void bh_dl_monitor_dlerror_msg_tls_dtor(void *buf) {
 
 // lock between "dlclose"(wrlock) and "read elf cache"(rdlock)
 static pthread_rwlock_t bh_dl_monitor_dlclose_lock = PTHREAD_RWLOCK_INITIALIZER;
+static bool bh_dl_monitor_hook_dlclose = false;
 
 static int bh_dl_monitor_dlclose_wrlock(void) {
   return pthread_rwlock_wrlock(&bh_dl_monitor_dlclose_lock);
 }
 
 void bh_dl_monitor_dlclose_rdlock(void) {
-  pthread_rwlock_rdlock(&bh_dl_monitor_dlclose_lock);
+  if (__predict_false(bh_dl_monitor_hook_dlclose)) pthread_rwlock_rdlock(&bh_dl_monitor_dlclose_lock);
 }
 
 void bh_dl_monitor_dlclose_unlock(void) {
-  pthread_rwlock_unlock(&bh_dl_monitor_dlclose_lock);
+  if (__predict_false(bh_dl_monitor_hook_dlclose)) pthread_rwlock_unlock(&bh_dl_monitor_dlclose_lock);
 }
 
 // proxy for dlopen() when API level [16, 25]
@@ -264,10 +257,9 @@ static void *bh_dl_monitor_proxy_dlopen(const char *filename, int flags) {
   int api_level = bh_util_get_api_level();
 
   // call dlopen()
-  bh_linker_add_lock_count();
   void *handle = NULL;
   if (api_level >= __ANDROID_API_J__ && api_level <= __ANDROID_API_M__) {
-    if (BYTEHOOK_MODE_MANUAL == bh_core_get_mode())
+    if (BYTEHOOK_IS_MANUAL_MODE)
       handle = bh_dl_monitor_orig_dlopen(filename, flags);
     else
       handle = BYTEHOOK_CALL_PREV(bh_dl_monitor_proxy_dlopen, bh_dl_monitor_dlopen_t, filename, flags);
@@ -282,16 +274,15 @@ static void *bh_dl_monitor_proxy_dlopen(const char *filename, int flags) {
       bh_linker_unlock();
     }
   }
-  bh_linker_sub_lock_count();
 
   // call dl_iterate_phdr() to update ELF-info-cache
-  if (!bh_linker_is_in_lock() && NULL != handle && NULL != bh_dl_monitor_post_dlopen) {
+  if (NULL != bh_dl_monitor_post_dlopen && NULL != handle && !bh_linker_is_in_lock()) {
     BH_LOG_INFO("DL monitor: post dlopen(), filename: %s", filename);
     bh_dl_monitor_post_dlopen(bh_dl_monitor_post_dlopen_arg);
   }
 
-  BYTEHOOK_POP_STACK();
   bh_dl_monitor_call_cb_post(filename, NULL != handle ? 0 : -1);
+  BYTEHOOK_POP_STACK();
   return handle;
 }
 
@@ -301,10 +292,9 @@ static void *bh_dl_monitor_proxy_android_dlopen_ext(const char *filename, int fl
   int api_level = bh_util_get_api_level();
 
   // call android_dlopen_ext()
-  bh_linker_add_lock_count();
   void *handle = NULL;
   if (api_level >= __ANDROID_API_L__ && api_level <= __ANDROID_API_M__) {
-    if (BYTEHOOK_MODE_MANUAL == bh_core_get_mode())
+    if (BYTEHOOK_IS_MANUAL_MODE)
       handle = bh_dl_monitor_orig_android_dlopen_ext(filename, flags, extinfo);
     else
       handle = BYTEHOOK_CALL_PREV(bh_dl_monitor_proxy_android_dlopen_ext, bh_dl_monitor_android_dlopen_ext_t,
@@ -320,16 +310,15 @@ static void *bh_dl_monitor_proxy_android_dlopen_ext(const char *filename, int fl
       bh_linker_unlock();
     }
   }
-  bh_linker_sub_lock_count();
 
   // call dl_iterate_phdr() to update ELF-info-cache
-  if (!bh_linker_is_in_lock() && NULL != handle && NULL != bh_dl_monitor_post_dlopen) {
+  if (NULL != bh_dl_monitor_post_dlopen && NULL != handle && !bh_linker_is_in_lock()) {
     BH_LOG_INFO("DL monitor: post android_dlopen_ext(), filename: %s", filename);
     bh_dl_monitor_post_dlopen(bh_dl_monitor_post_dlopen_arg);
   }
 
-  BYTEHOOK_POP_STACK();
   bh_dl_monitor_call_cb_post(filename, NULL != handle ? 0 : -1);
+  BYTEHOOK_POP_STACK();
   return handle;
 }
 
@@ -338,23 +327,21 @@ static void *bh_dl_monitor_proxy_loader_dlopen(const char *filename, int flags, 
   bh_dl_monitor_call_cb_pre(filename);
 
   // call __loader_dlopen()
-  bh_linker_add_lock_count();
   void *handle = NULL;
-  if (BYTEHOOK_MODE_MANUAL == bh_core_get_mode())
+  if (BYTEHOOK_IS_MANUAL_MODE)
     handle = bh_dl_monitor_orig_loader_dlopen(filename, flags, caller_addr);
   else
     handle = BYTEHOOK_CALL_PREV(bh_dl_monitor_proxy_loader_dlopen, bh_dl_monitor_loader_dlopen_t, filename,
                                 flags, caller_addr);
-  bh_linker_sub_lock_count();
 
   // call dl_iterate_phdr() to update ELF-info-cache
-  if (!bh_linker_is_in_lock() && NULL != handle && NULL != bh_dl_monitor_post_dlopen) {
+  if (NULL != bh_dl_monitor_post_dlopen && NULL != handle && !bh_linker_is_in_lock()) {
     BH_LOG_INFO("DL monitor: post __loader_dlopen(), filename: %s", filename);
     bh_dl_monitor_post_dlopen(bh_dl_monitor_post_dlopen_arg);
   }
 
-  BYTEHOOK_POP_STACK();
   bh_dl_monitor_call_cb_post(filename, NULL != handle ? 0 : -1);
+  BYTEHOOK_POP_STACK();
   return handle;
 }
 
@@ -364,24 +351,22 @@ static void *bh_dl_monitor_proxy_loader_android_dlopen_ext(const char *filename,
   bh_dl_monitor_call_cb_pre(filename);
 
   // call __loader_android_dlopen_ext()
-  bh_linker_add_lock_count();
   void *handle = NULL;
-  if (BYTEHOOK_MODE_MANUAL == bh_core_get_mode())
+  if (BYTEHOOK_IS_MANUAL_MODE)
     handle = bh_dl_monitor_orig_loader_android_dlopen_ext(filename, flags, extinfo, caller_addr);
   else
     handle =
         BYTEHOOK_CALL_PREV(bh_dl_monitor_proxy_loader_android_dlopen_ext,
                            bh_dl_monitor_loader_android_dlopen_ext_t, filename, flags, extinfo, caller_addr);
-  bh_linker_sub_lock_count();
 
   // call dl_iterate_phdr() to update ELF-info-cache
-  if (!bh_linker_is_in_lock() && NULL != handle && NULL != bh_dl_monitor_post_dlopen) {
+  if (NULL != bh_dl_monitor_post_dlopen && NULL != handle && !bh_linker_is_in_lock()) {
     BH_LOG_INFO("DL monitor: post __loader_android_dlopen_ext(), filename: %s", filename);
     bh_dl_monitor_post_dlopen(bh_dl_monitor_post_dlopen_arg);
   }
 
-  BYTEHOOK_POP_STACK();
   bh_dl_monitor_call_cb_post(filename, NULL != handle ? 0 : -1);
+  BYTEHOOK_POP_STACK();
   return handle;
 }
 
@@ -391,16 +376,14 @@ static int bh_dl_monitor_proxy_dlclose(void *handle) {
   if (!bh_linker_is_in_lock()) wrlocked = (0 == bh_dl_monitor_dlclose_wrlock());
 
   // call dlclose()
-  bh_linker_add_lock_count();
   int ret;
-  if (BYTEHOOK_MODE_MANUAL == bh_core_get_mode())
+  if (BYTEHOOK_IS_MANUAL_MODE)
     ret = bh_dl_monitor_orig_dlclose(handle);
   else
     ret = BYTEHOOK_CALL_PREV(bh_dl_monitor_proxy_dlclose, bh_dl_monitor_dlclose_t, handle);
-  bh_linker_sub_lock_count();
 
   // call dl_iterate_phdr() to update ELF-info-cache
-  if (!bh_linker_is_in_lock() && 0 == ret && NULL != bh_dl_monitor_post_dlclose) {
+  if (NULL != bh_dl_monitor_post_dlclose && 0 == ret && !bh_linker_is_in_lock()) {
     BH_LOG_INFO("DL monitor: post dlclose(), handle: %p", handle);
     bh_dl_monitor_post_dlclose(wrlocked, bh_dl_monitor_post_dlclose_arg);
   }
@@ -416,16 +399,14 @@ static int bh_dl_monitor_proxy_loader_dlclose(void *handle) {
   if (!bh_linker_is_in_lock()) wrlocked = (0 == bh_dl_monitor_dlclose_wrlock());
 
   // call __loader_dlclose()
-  bh_linker_add_lock_count();
   int ret;
-  if (BYTEHOOK_MODE_MANUAL == bh_core_get_mode())
+  if (BYTEHOOK_IS_MANUAL_MODE)
     ret = bh_dl_monitor_orig_loader_dlclose(handle);
   else
     ret = BYTEHOOK_CALL_PREV(bh_dl_monitor_proxy_loader_dlclose, bh_dl_monitor_loader_dlclose_t, handle);
-  bh_linker_sub_lock_count();
 
   // call dl_iterate_phdr() to update ELF-info-cache
-  if (!bh_linker_is_in_lock() && 0 == ret && NULL != bh_dl_monitor_post_dlclose) {
+  if (NULL != bh_dl_monitor_post_dlclose && 0 == ret && !bh_linker_is_in_lock()) {
     BH_LOG_INFO("DL monitor: post __loader_dlclose(), handle: %p", handle);
     bh_dl_monitor_post_dlclose(wrlocked, bh_dl_monitor_post_dlclose_arg);
   }
@@ -435,83 +416,97 @@ static int bh_dl_monitor_proxy_loader_dlclose(void *handle) {
   return ret;
 }
 
+static bool bh_dl_monitor_need_to_hook_dlclose(void) {
+#if defined(__aarch64__)
+  return false;
+#elif defined(__arm__)
+#if __ANDROID_API__ >= __ANDROID_API_L__
+  return false;
+#else
+  return bh_util_get_api_level() < __ANDROID_API_L__;
+#endif
+#else
+  return true;
+#endif
+}
+
 static int bh_dl_monitor_hook(void) {
+  bh_dl_monitor_hook_dlclose = bh_dl_monitor_need_to_hook_dlclose();
   int api_level = bh_util_get_api_level();
+  bh_task_t *task = NULL;
 
   if (__ANDROID_API_N__ == api_level || __ANDROID_API_N_MR1__ == api_level) {
     if (NULL != bh_linker_do_dlopen && NULL == bh_linker_bionic_format_dlerror &&
         NULL != bh_linker_get_error_buffer) {
       if (0 != pthread_key_create(&bh_dl_monitor_dlerror_msg_tls_key, bh_dl_monitor_dlerror_msg_tls_dtor))
-        goto err;
+        return -1;
+    }
+  }
+
+  if (bh_dl_monitor_hook_dlclose) {
+    if (api_level < __ANDROID_API_O__) {
+      task =
+          bh_task_create_all(NULL, BH_CONST_SYM_DLCLOSE, (void *)bh_dl_monitor_proxy_dlclose,
+                             BYTEHOOK_IS_MANUAL_MODE ? bh_dl_monitor_proxy_dlclose_hooked : NULL, NULL, true);
+      if (NULL != task) {
+        bh_task_manager_add(task);
+        bh_task_manager_hook(task);
+      }
+    } else {
+      task = bh_task_create_single(BH_CONST_BASENAME_DL, NULL,
+                                   BH_CONST_SYM_LOADER_DLCLOSE,  // STT_FUNC or STT_NOTYPE
+                                   (void *)bh_dl_monitor_proxy_loader_dlclose,
+                                   BYTEHOOK_IS_MANUAL_MODE ? bh_dl_monitor_proxy_loader_dlclose_hooked : NULL,
+                                   NULL, true);
+      if (NULL != task) {
+        bh_task_hook(task);
+        bh_task_destroy(&task);
+      }
     }
   }
 
   if (api_level >= __ANDROID_API_J__ && api_level <= __ANDROID_API_N_MR1__) {
-    if (NULL == (bh_dl_monitor_stub_dlopen = bh_core_hook_all(
-                     NULL, BH_CONST_SYM_DLOPEN, (void *)bh_dl_monitor_proxy_dlopen,
-                     (BYTEHOOK_MODE_MANUAL == bh_core_get_mode()) ? bh_dl_monitor_proxy_dlopen_hooked : NULL,
-                     NULL, (uintptr_t)(__builtin_return_address(0)))))
-      goto err;
+    task = bh_task_create_all(NULL, BH_CONST_SYM_DLOPEN, (void *)bh_dl_monitor_proxy_dlopen,
+                              BYTEHOOK_IS_MANUAL_MODE ? bh_dl_monitor_proxy_dlopen_hooked : NULL, NULL, true);
+    if (NULL != task) {
+      bh_task_manager_add(task);
+      bh_task_manager_hook(task);
+    }
   }
 
   if (api_level >= __ANDROID_API_L__ && api_level <= __ANDROID_API_N_MR1__) {
-    if (NULL ==
-        (bh_dl_monitor_stub_android_dlopen_ext = bh_core_hook_all(
-             NULL, BH_CONST_SYM_ANDROID_DLOPEN_EXT, (void *)bh_dl_monitor_proxy_android_dlopen_ext,
-             (BYTEHOOK_MODE_MANUAL == bh_core_get_mode()) ? bh_dl_monitor_proxy_android_dlopen_ext_hooked
-                                                          : NULL,
-             NULL, (uintptr_t)(__builtin_return_address(0)))))
-      goto err;
+    task = bh_task_create_all(
+        NULL, BH_CONST_SYM_ANDROID_DLOPEN_EXT, (void *)bh_dl_monitor_proxy_android_dlopen_ext,
+        BYTEHOOK_IS_MANUAL_MODE ? bh_dl_monitor_proxy_android_dlopen_ext_hooked : NULL, NULL, true);
+    if (NULL != task) {
+      bh_task_manager_add(task);
+      bh_task_manager_hook(task);
+    }
   }
 
   if (api_level >= __ANDROID_API_O__) {
-    if (NULL ==
-        (bh_dl_monitor_stub_loader_dlopen = bh_core_hook_single(
-             BH_CONST_BASENAME_DL, NULL,
-             BH_CONST_SYM_LOADER_DLOPEN,  // STT_FUNC or STT_NOTYPE
-             (void *)bh_dl_monitor_proxy_loader_dlopen,
-             (BYTEHOOK_MODE_MANUAL == bh_core_get_mode()) ? bh_dl_monitor_proxy_loader_dlopen_hooked : NULL,
-             NULL, (uintptr_t)(__builtin_return_address(0)))))
-      goto err;
+    task = bh_task_create_single(BH_CONST_BASENAME_DL, NULL,
+                                 BH_CONST_SYM_LOADER_DLOPEN,  // STT_FUNC or STT_NOTYPE
+                                 (void *)bh_dl_monitor_proxy_loader_dlopen,
+                                 BYTEHOOK_IS_MANUAL_MODE ? bh_dl_monitor_proxy_loader_dlopen_hooked : NULL,
+                                 NULL, true);
+    if (NULL != task) {
+      bh_task_hook(task);
+      bh_task_destroy(&task);
+    }
 
-    if (NULL == (bh_dl_monitor_stub_loader_android_dlopen_ext =
-                     bh_core_hook_single(BH_CONST_BASENAME_DL, NULL,
-                                         BH_CONST_SYM_LOADER_ANDROID_DLOPEN_EXT,  // STT_FUNC or STT_NOTYPE
-                                         (void *)bh_dl_monitor_proxy_loader_android_dlopen_ext,
-                                         (BYTEHOOK_MODE_MANUAL == bh_core_get_mode())
-                                             ? bh_dl_monitor_proxy_loader_android_dlopen_ext_hooked
-                                             : NULL,
-                                         NULL, (uintptr_t)(__builtin_return_address(0)))))
-      goto err;
-  }
-
-  if (api_level < __ANDROID_API_O__) {
-    if (NULL == (bh_dl_monitor_stub_dlclose = bh_core_hook_all(
-                     NULL, BH_CONST_SYM_DLCLOSE, (void *)bh_dl_monitor_proxy_dlclose,
-                     (BYTEHOOK_MODE_MANUAL == bh_core_get_mode()) ? bh_dl_monitor_proxy_dlclose_hooked : NULL,
-                     NULL, (uintptr_t)(__builtin_return_address(0)))))
-      goto err;
-  } else {
-    if (NULL ==
-        (bh_dl_monitor_stub_loader_dlclose = bh_core_hook_single(
-             BH_CONST_BASENAME_DL, NULL,
-             BH_CONST_SYM_LOADER_DLCLOSE,  // STT_FUNC or STT_NOTYPE
-             (void *)bh_dl_monitor_proxy_loader_dlclose,
-             (BYTEHOOK_MODE_MANUAL == bh_core_get_mode()) ? bh_dl_monitor_proxy_loader_dlclose_hooked : NULL,
-             NULL, (uintptr_t)(__builtin_return_address(0)))))
-      goto err;
+    task = bh_task_create_single(
+        BH_CONST_BASENAME_DL, NULL,
+        BH_CONST_SYM_LOADER_ANDROID_DLOPEN_EXT,  // STT_FUNC or STT_NOTYPE
+        (void *)bh_dl_monitor_proxy_loader_android_dlopen_ext,
+        BYTEHOOK_IS_MANUAL_MODE ? bh_dl_monitor_proxy_loader_android_dlopen_ext_hooked : NULL, NULL, true);
+    if (NULL != task) {
+      bh_task_hook(task);
+      bh_task_destroy(&task);
+    }
   }
 
   return 0;
-
-err:
-  bh_dl_monitor_uninit();
-  return -1;
-}
-
-static bool bh_dl_monitor_initing = false;
-bool bh_dl_monitor_is_initing(void) {
-  return bh_dl_monitor_initing;
 }
 
 int bh_dl_monitor_init(void) {
@@ -523,12 +518,11 @@ int bh_dl_monitor_init(void) {
 
   int r;
   pthread_mutex_lock(&lock);
-  bh_dl_monitor_initing = true;
   if (!inited) {
-    __atomic_store_n(&inited, true, __ATOMIC_SEQ_CST);
+    inited = true;
     BH_LOG_INFO("DL monitor: pre init");
     if (0 == (r = bh_dl_monitor_hook())) {
-      __atomic_store_n(&inited_ok, true, __ATOMIC_SEQ_CST);
+      inited_ok = true;
       BH_LOG_INFO("DL monitor: post init, OK");
     } else {
       BH_LOG_ERROR("DL monitor: post init, FAILED");
@@ -536,46 +530,18 @@ int bh_dl_monitor_init(void) {
   } else {
     r = inited_ok ? 0 : -1;
   }
-  bh_dl_monitor_initing = false;
   pthread_mutex_unlock(&lock);
   return r;
 }
 
-void bh_dl_monitor_uninit(void) {
-  if (NULL != bh_dl_monitor_stub_dlopen) {
-    bh_core_unhook(bh_dl_monitor_stub_dlopen, 0);
-    bh_dl_monitor_stub_dlopen = NULL;
-  }
-  if (NULL != bh_dl_monitor_stub_android_dlopen_ext) {
-    bh_core_unhook(bh_dl_monitor_stub_android_dlopen_ext, 0);
-    bh_dl_monitor_stub_android_dlopen_ext = NULL;
-  }
-  if (NULL != bh_dl_monitor_stub_loader_dlopen) {
-    bh_core_unhook(bh_dl_monitor_stub_loader_dlopen, 0);
-    bh_dl_monitor_stub_loader_dlopen = NULL;
-  }
-  if (NULL != bh_dl_monitor_stub_loader_android_dlopen_ext) {
-    bh_core_unhook(bh_dl_monitor_stub_loader_android_dlopen_ext, 0);
-    bh_dl_monitor_stub_loader_android_dlopen_ext = NULL;
-  }
-  if (NULL != bh_dl_monitor_stub_dlclose) {
-    bh_core_unhook(bh_dl_monitor_stub_dlclose, 0);
-    bh_dl_monitor_stub_dlclose = NULL;
-  }
-  if (NULL != bh_dl_monitor_stub_loader_dlclose) {
-    bh_core_unhook(bh_dl_monitor_stub_loader_dlclose, 0);
-    bh_dl_monitor_stub_loader_dlclose = NULL;
-  }
-}
-
 void bh_dl_monitor_set_post_dlopen(bh_dl_monitor_post_dlopen_t cb, void *cb_arg) {
   bh_dl_monitor_post_dlopen_arg = cb_arg;
-  __atomic_store_n(&bh_dl_monitor_post_dlopen, cb, __ATOMIC_SEQ_CST);
+  __atomic_store_n(&bh_dl_monitor_post_dlopen, cb, __ATOMIC_RELEASE);
 }
 
 void bh_dl_monitor_set_post_dlclose(bh_dl_monitor_post_dlclose_t cb, void *cb_arg) {
   bh_dl_monitor_post_dlclose_arg = cb_arg;
-  __atomic_store_n(&bh_dl_monitor_post_dlclose, cb, __ATOMIC_SEQ_CST);
+  __atomic_store_n(&bh_dl_monitor_post_dlclose, cb, __ATOMIC_RELEASE);
 }
 
 void bh_dl_monitor_add_dlopen_callback(bytehook_pre_dlopen_t pre, bytehook_post_dlopen_t post, void *data) {

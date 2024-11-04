@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 ByteDance, Inc.
+// Copyright (c) 2020-2024 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,6 @@
 #include <stdint.h>
 
 #include "bh_elf.h"
-#include "bh_hook.h"
 #include "bytehook.h"
 #include "queue.h"
 
@@ -41,12 +40,14 @@ typedef enum {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wpadded"
 typedef struct bh_task {
-  uint32_t id;  // unique id
   bh_task_type_t type;
   bh_task_status_t status;
+  int status_code;  // for recorder, single type only
+  bool is_invisible;
 
   // caller
   char *caller_path_name;                              // for single
+  uintptr_t caller_load_bias;                          // for single
   bytehook_caller_allow_filter_t caller_allow_filter;  // for partial
   void *caller_allow_filter_arg;                       // for partial
 
@@ -64,25 +65,21 @@ typedef struct bh_task {
   bytehook_hooked_t hooked;
   void *hooked_arg;
 
-  int hook_status_code;  // for single type
-
-  void *manual_orig_func;  // for manual mode
-
   TAILQ_ENTRY(bh_task, ) link;
 } bh_task_t;
 #pragma clang diagnostic pop
 
 bh_task_t *bh_task_create_single(const char *caller_path_name, const char *callee_path_name,
                                  const char *sym_name, void *new_func, bytehook_hooked_t hooked,
-                                 void *hooked_arg);
+                                 void *hooked_arg, bool is_invisible);
 
 bh_task_t *bh_task_create_partial(bytehook_caller_allow_filter_t caller_allow_filter,
                                   void *caller_allow_filter_arg, const char *callee_path_name,
                                   const char *sym_name, void *new_func, bytehook_hooked_t hooked,
-                                  void *hooked_arg);
+                                  void *hooked_arg, bool is_invisible);
 
 bh_task_t *bh_task_create_all(const char *callee_path_name, const char *sym_name, void *new_func,
-                              bytehook_hooked_t hooked, void *hooked_arg);
+                              bytehook_hooked_t hooked, void *hooked_arg, bool is_invisible);
 
 void bh_task_destroy(bh_task_t **self);
 
@@ -90,7 +87,6 @@ void bh_task_hook(bh_task_t *self);
 void bh_task_hook_elf(bh_task_t *self, bh_elf_t *elf);
 int bh_task_unhook(bh_task_t *self);
 
-void bh_task_set_manual_orig_func(bh_task_t *self, void *orig_func);
-void *bh_task_get_manual_orig_func(bh_task_t *self);
-
-void bh_task_hooked(bh_task_t *self, int status_code, const char *caller_path_name, void *orig_func);
+void bh_task_do_hooked_callback(bh_task_t *self, int status_code, const char *caller_path_name,
+                                void *orig_func);
+void bh_task_do_orig_func_callback(bh_task_t *self, const char *caller_path_name, void *orig_func);

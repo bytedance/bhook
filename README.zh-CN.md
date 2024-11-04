@@ -1,7 +1,7 @@
 # ByteHook
 
 ![](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)
-![](https://img.shields.io/badge/release-1.0.10-red.svg?style=flat)
+![](https://img.shields.io/badge/release-1.1.0-red.svg?style=flat)
 ![](https://img.shields.io/badge/Android-4.1%20--%2014-blue.svg?style=flat)
 ![](https://img.shields.io/badge/arch-armeabi--v7a%20%7C%20arm64--v8a%20%7C%20x86%20%7C%20x86__64-blue.svg?style=flat)
 
@@ -47,7 +47,7 @@ android {
 }
 
 dependencies {
-    implementation 'com.bytedance:bytehook:1.0.10'
+    implementation 'com.bytedance:bytehook:1.1.0'
 }
 ```
 
@@ -112,6 +112,12 @@ android {
         pickFirst '**/libbytehook.so'
     }
 }
+```
+
+注意：如果在 x86 和 x86_64 架构下使用 prefab 依赖 bytehook 时需要在模块的 build.gradle 中添加 [prefab_bypass.gradle](gradle/prefab_bypass.gradle) 。
+
+```Gradle
+apply from: rootProject.file('gradle/prefab_bypass.gradle')
 ```
 
 ### 5. 初始化
@@ -184,9 +190,6 @@ ByteHook 使用了以下第三方源码或库：
 * [queue.h](bytehook/src/main/cpp/third_party/bsd/queue.h)  
   BSD 3-Clause License  
   Copyright (c) 1991, 1993 The Regents of the University of California.
-* [tree.h](bytehook/src/main/cpp/third_party/bsd/tree.h)  
-  BSD 2-Clause License  
-  Copyright (c) 2002 Niels Provos <provos@citi.umich.edu>
 * [linux-syscall-support](https://chromium.googlesource.com/linux-syscall-support/)  
   BSD 3-Clause License  
   Copyright (c) 2005-2011 Google Inc.

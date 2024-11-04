@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 ByteDance, Inc.
+// Copyright (c) 2020-2024 ByteDance Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,21 +19,32 @@
 // SOFTWARE.
 //
 
-// Created by Li Zhang (zhangli.foxleezh@bytedance.com) on 2020-06-21.
+// Created by Kelun Cai (caikelun@bytedance.com) on 2024-09-11.
 
 #pragma once
-#include "bh_hook.h"
+#include <stddef.h>
+#include <stdint.h>
+#include <sys/time.h>
 
-extern void *bh_trampo_data;
+#include "queue.h"
 
-void bh_trampo_template(void);
+typedef struct bh_trampo_page {
+  uintptr_t ptr;
+  uint32_t *flags;
+  time_t *timestamps;
+  SLIST_ENTRY(bh_trampo_page, ) link;
+} bh_trampo_page_t;
+typedef SLIST_HEAD(bh_trampo_page_list, bh_trampo_page, ) bh_trampo_page_list_t;
 
-int bh_trampo_init(void);
+typedef struct bh_trampo_mgr {
+  bh_trampo_page_list_t pages;
+  pthread_mutex_t pages_lock;
+  const char *page_name;
+  size_t trampo_size;
+  time_t delay_sec;
+} bh_trampo_mgr_t;
 
-void *bh_trampo_create(bh_hook_t *hook);
+void bh_trampo_init_mgr(bh_trampo_mgr_t *mgr, const char *page_name, size_t trampo_size, time_t delay_sec);
 
-void *bh_trampo_get_prev_func(void *func);
-
-void bh_trampo_pop_stack(void *return_address);
-
-void *bh_trampo_get_return_address(void);
+uintptr_t bh_trampo_alloc(bh_trampo_mgr_t *mgr);
+void bh_trampo_free(bh_trampo_mgr_t *mgr, uintptr_t trampo);

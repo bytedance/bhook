@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 ByteDance, Inc.
+// Copyright (c) 2020-2024 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -48,7 +48,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define BYTEHOOK_VERSION "1.0.10"
+#define BYTEHOOK_VERSION "1.1.0"
 
 #define BYTEHOOK_STATUS_CODE_OK                  0
 #define BYTEHOOK_STATUS_CODE_UNINIT              1
@@ -76,6 +76,11 @@
 #define BYTEHOOK_STATUS_CODE_ORIG_ADDR           23
 #define BYTEHOOK_STATUS_CODE_INITERR_CFI         24
 #define BYTEHOOK_STATUS_CODE_IGNORE              25
+#define BYTEHOOK_STATUS_CODE_INITERR_SAFE        26
+#define BYTEHOOK_STATUS_CODE_INITERR_HUB         27
+#define BYTEHOOK_STATUS_CODE_OOM                 28
+#define BYTEHOOK_STATUS_CODE_DUP                 29
+#define BYTEHOOK_ERRNO_NOT_FOUND                 30
 #define BYTEHOOK_STATUS_CODE_MAX                 255
 
 #define BYTEHOOK_MODE_AUTOMATIC 0
@@ -112,6 +117,8 @@ int bytehook_unhook(bytehook_stub_t stub);
 
 int bytehook_add_ignore(const char *caller_path_name);
 
+#define BYTEHOOK_IS_AUTOMATIC_MODE (BYTEHOOK_MODE_AUTOMATIC == bytehook_get_mode())
+#define BYTEHOOK_IS_MANUAL_MODE    (BYTEHOOK_MODE_MANUAL == bytehook_get_mode())
 int bytehook_get_mode(void);
 bool bytehook_get_debug(void);
 void bytehook_set_debug(bool debug);

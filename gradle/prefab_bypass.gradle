@@ -1,0 +1,66 @@
+// Copyright (c) 2020-2024 ByteDance, Inc.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+//
+
+// Created by Da Xi (xida@bytedance.com) on 2024-11-4.
+
+project.afterEvaluate {
+    def archList = ["x86", "x86_64"]
+    for(arch in archList) {
+        def abiName = "$arch"
+        def dirName = "android.$arch"
+        tasks."configureCMakeDebug[$arch]".doFirst {
+            def prefabPackageFiles = abi.variant.prefabPackages.files
+            for (File file : prefabPackageFiles) {
+                def libsDir = findFirstLibsSubdirectory(file)
+                def libsArchDir = new File(libsDir, dirName)
+                if (!libsArchDir.exists()) {
+                    libsArchDir.mkdirs()
+                    def abiJsonFile = new File(libsArchDir, "abi.json")
+                    def abiContent = "{\n" +
+                            "  \"abi\": \"$abiName\",\n" +
+                            "  \"api\": 16,\n" +
+                            "  \"ndk\": 23,\n" +
+                            "  \"stl\": \"none\",\n" +
+                            "  \"static\": false\n" +
+                            "}"
+                    abiJsonFile.write(abiContent)
+                    def dummySoFile = new File(libsArchDir, "libshadowhook.so")
+                    dummySoFile.createNewFile()
+                }
+            }
+        }
+    }
+}
+
+def findFirstLibsSubdirectory(File baseDir) {
+    // make sure the baseDir exists
+    if (!baseDir.exists() || !baseDir.isDirectory()) {
+        throw new IllegalArgumentException("baseDir not exists: $baseDir")
+    }
+    def result = null
+    baseDir.eachFileRecurse(groovy.io.FileType.DIRECTORIES) { dir ->
+        if (dir.name == 'libs') {
+            result = dir
+            return true
+        }
+    }
+    return result
+}

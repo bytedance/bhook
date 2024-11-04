@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 ByteDance, Inc.
+// Copyright (c) 2020-2024 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,38 +19,18 @@
 // SOFTWARE.
 //
 
-// Created by Kelun Cai (caikelun@bytedance.com) on 2020-06-02.
+// Created by Kelun Cai (caikelun@bytedance.com) on 2024-09-12.
 
 #pragma once
-#include <pthread.h>
-#include <stdbool.h>
 
-#include "queue.h"
-#include "tree.h"
+#include <link.h>
+#include <stdint.h>
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wpadded"
+#include "bh_elf.h"
+#include "bh_task.h"
 
-typedef struct bh_hook_call {
-  void *func;
-  bool enabled;
-  uint32_t task_id;
-  SLIST_ENTRY(bh_hook_call, ) link;
-} bh_hook_call_t;
-typedef SLIST_HEAD(bh_hook_call_list, bh_hook_call, ) bh_hook_call_list_t;
+void bh_elf_relocator_hook(bh_elf_t *elf, bh_task_t *task);
+void bh_elf_relocator_unhook(bh_elf_t *elf, bh_task_t *task);
 
-typedef struct bh_hook {
-  void *got_addr;
-  void *orig_func;
-  bh_hook_call_list_t running_list;
-  pthread_mutex_t running_list_lock;
-  RB_ENTRY(bh_hook) link;
-} bh_hook_t;
-
-#pragma clang diagnostic pop
-
-bh_hook_t *bh_hook_create(void *got_addr, void *orig_func);
-void bh_hook_destroy(bh_hook_t **self);
-
-int bh_hook_add_func(bh_hook_t *self, void *func, uint32_t task_id);
-bool bh_hook_del_func(bh_hook_t *self, void *func);
+int bh_elf_relocator_reloc(bh_elf_t *elf, bh_task_t *task, bh_array_t *gots, bh_array_t *prots,
+                           uintptr_t new_addr, uintptr_t *orig_addr);

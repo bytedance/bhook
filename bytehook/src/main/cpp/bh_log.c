@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 ByteDance, Inc.
+// Copyright (c) 2020-2024 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,13 @@
 #include <android/log.h>
 #include <stdbool.h>
 
-android_LogPriority bh_log_priority = ANDROID_LOG_SILENT;
+android_LogPriority bh_log_priority =
+#ifdef BH_CONFIG_DEBUG
+    ANDROID_LOG_INFO
+#else
+    ANDROID_LOG_SILENT
+#endif
+    ;
 
 bool bh_log_get_debug(void) {
   return bh_log_priority <= ANDROID_LOG_INFO;

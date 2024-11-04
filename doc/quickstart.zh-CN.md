@@ -86,6 +86,11 @@ android {
 }
 ```
 
+注意：如果在 x86 和 x86_64 架构下使用 prefab 依赖 bytehook 时需要在模块的 build.gradle 中添加 [prefab_bypass.gradle](../gradle/prefab_bypass.gradle) 。
+
+```Gradle
+apply from: rootProject.file('gradle/prefab_bypass.gradle')
+```
 
 ## 在 Java 层初始化
 

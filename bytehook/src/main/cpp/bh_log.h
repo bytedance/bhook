@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 ByteDance, Inc.
+// Copyright (c) 2020-2024 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -33,6 +33,18 @@ extern android_LogPriority bh_log_priority;
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 
+// Notice:
+// We don't use ANDROID_LOG_DEBUG, because some Android devices will filter out ANDROID_LOG_DEBUG.
+#ifdef BH_CONFIG_DEBUG
+#define BH_LOG_DEBUG(fmt, ...)                                               \
+  do {                                                                       \
+    if (sh_log_priority <= ANDROID_LOG_INFO)                                 \
+      __android_log_print(ANDROID_LOG_INFO, BH_LOG_TAG, fmt, ##__VA_ARGS__); \
+  } while (0)
+#else
+#define BH_LOG_DEBUG(fmt, ...)
+#endif
+
 #define BH_LOG_INFO(fmt, ...)                                                \
   do {                                                                       \
     if (__predict_false(bh_log_priority <= ANDROID_LOG_INFO))                \
@@ -48,11 +60,7 @@ extern android_LogPriority bh_log_priority;
     if (__predict_false(bh_log_priority <= ANDROID_LOG_ERROR))                \
       __android_log_print(ANDROID_LOG_ERROR, BH_LOG_TAG, fmt, ##__VA_ARGS__); \
   } while (0)
-
-#define BH_LOG_SHOW(fmt, ...)                                              \
-  do {                                                                     \
-    __android_log_print(ANDROID_LOG_WARN, BH_LOG_TAG, fmt, ##__VA_ARGS__); \
-  } while (0)
+#define BH_LOG_ALWAYS_SHOW(fmt, ...) __android_log_print(ANDROID_LOG_ERROR, BH_LOG_TAG, fmt, ##__VA_ARGS__)
 
 #pragma clang diagnostic pop
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 ByteDance, Inc.
+// Copyright (c) 2020-2024 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,20 +26,19 @@
 
 #include "bh_elf.h"
 
-typedef struct bh_elf_manager bh_elf_manager_t;
-
-bh_elf_manager_t *bh_elf_manager_create(void);
-
-int bh_elf_manager_add_ignore(bh_elf_manager_t *self, const char *caller_path_name);
+int bh_elf_manager_add_ignore(const char *caller_path_name);
 
 typedef void (*bh_elf_manager_post_add_cb_t)(bh_elf_t *elf, void *arg);
-void bh_elf_manager_refresh(bh_elf_manager_t *self, bool sync_clean, bh_elf_manager_post_add_cb_t cb,
-                            void *cb_arg);
+void bh_elf_manager_refresh(bool sync_clean, bh_elf_manager_post_add_cb_t cb, void *cb_arg);
 
 typedef bool (*bh_elf_manager_iterate_cb_t)(bh_elf_t *elf, void *arg);
-void bh_elf_manager_iterate(bh_elf_manager_t *self, bh_elf_manager_iterate_cb_t cb, void *cb_arg);
+void bh_elf_manager_iterate(bh_elf_manager_iterate_cb_t cb, void *cb_arg);
 
-bh_elf_t *bh_elf_manager_find_elf(bh_elf_manager_t *self, const char *pathname);
+bh_elf_t *bh_elf_manager_find_elf(const char *pathname);
 
 // similar to dlsym(), but search .dynsym
-void *bh_elf_manager_find_export_addr(bh_elf_manager_t *self, const char *pathname, const char *sym_name);
+void *bh_elf_manager_find_export_addr(const char *pathname, const char *sym_name);
+
+void bh_elf_manager_load(void);
+bh_elf_t *bh_elf_manager_add(struct dl_phdr_info *info);
+void bh_elf_manager_del(struct dl_phdr_info *info);

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 ByteDance, Inc.
+// Copyright (c) 2020-2024 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -36,9 +36,7 @@ void bh_dl_monitor_set_post_dlclose(bh_dl_monitor_post_dlclose_t cb, void *cb_ar
 void bh_dl_monitor_add_dlopen_callback(bytehook_pre_dlopen_t pre, bytehook_post_dlopen_t post, void *data);
 void bh_dl_monitor_del_dlopen_callback(bytehook_pre_dlopen_t pre, bytehook_post_dlopen_t post, void *data);
 
-bool bh_dl_monitor_is_initing(void);
 int bh_dl_monitor_init(void);
-void bh_dl_monitor_uninit(void);
 
 void bh_dl_monitor_dlclose_rdlock(void);
 void bh_dl_monitor_dlclose_unlock(void);

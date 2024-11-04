@@ -20,6 +20,7 @@ public static synchronized int init(Config config);
 * ByteHook 需要初始化后才能使用。
 * ByteHook 内部有保护逻辑，在同一个 APP 进程中，只有第一次初始化有效，后续的初始化调用是无效的，也不会产生其他的副作用。(因此，各个使用 ByteHook 的 SDK 都可以在自身的初始化逻辑中初始化 ByteHook，集成到 APP 后彼此不会有冲突)
 * ByteHook 初始化时，或运行时（通过 `setDebug()`）可以开启 debug 模式。此时 ByteHook 会向 logcat 写大量的调试信息，这会降低 ByteHook 的运行性能。建议线上 release 版本不要开启 debug 模式。
+* ByteHook 初始化时依赖 ShadowHook ，在同时使用 ByteHook 和 ShadowHook 时需将 ShadowHook 的初始化提前至 ByteHook 之前，也可以在 ByteHook 初始化的 ConfigBuilder 构建 ShadowHook 的初始化参数，默认初始化 ShadowHook 为 Shared 模式。
 
 > 举例 1：
 
@@ -64,6 +65,10 @@ public class MySdk {
            .setMode(ByteHook.Mode.AUTOMATIC)
            // 输出内部调试日志到logcat（tag：bytehook_tag），默认false
            .setDebug(true)
+           // 指定 ShadowHook 运行模式（可设置自动模式或手动模式），默认自动模式
+           .setShadowhookMode(ShadowHook.Mode.SHARED)
+           // 输出 ShadowHook 内部调试日志到logcat（tag：shadowhook_tag），默认false
+           .setShadowhookDebug(true)
            .build());
 
         if(status_code != 0) {

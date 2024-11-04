@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 ByteDance, Inc.
+// Copyright (c) 2020-2024 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,8 +30,8 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#include "bh_sig.h"
 #include "bh_util.h"
-#include "bytesig.h"
 
 #define BH_CFI_LIB_DL         "libdl.so"
 #define BH_CFI_SLOWPATH       "__cfi_slowpath"
@@ -61,14 +61,14 @@ int bh_cfi_disable_slowpath(void) {
                                PROT_READ | PROT_WRITE | PROT_EXEC))
     return -1;
 
-  BYTESIG_TRY(SIGSEGV, SIGBUS) {
+  BH_SIG_TRY(SIGSEGV, SIGBUS) {
     *((uint32_t *)bh_cfi_slowpath) = BH_CFI_ARM64_RET_INST;
     *((uint32_t *)bh_cfi_slowpath_diag) = BH_CFI_ARM64_RET_INST;
   }
-  BYTESIG_CATCH() {
+  BH_SIG_CATCH() {
     return -1;
   }
-  BYTESIG_EXIT
+  BH_SIG_EXIT
 
   __builtin___clear_cache(start, (void *)((size_t)end + sizeof(uint32_t)));
 

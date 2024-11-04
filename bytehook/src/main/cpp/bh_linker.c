@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 ByteDance, Inc.
+// Copyright (c) 2020-2024 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,7 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "bh_const.h"
@@ -34,13 +35,6 @@
 #include "bh_linker_mutex.h"
 #include "bh_log.h"
 #include "bh_util.h"
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wreserved-id-macro"
-#ifndef __ANDROID_API_U__
-#define __ANDROID_API_U__ 34
-#endif
-#pragma clang diagnostic pop
 
 typedef struct {
   // bits:     name:    description:
@@ -58,17 +52,17 @@ typedef struct {
 #endif
 } bh_linker_mutex_internal_t __attribute__((aligned(4)));
 
-#define BH_LINKER_MUTEX_IS_UNLOCKED(v) (((v)&0x3) == 0)
-#define BH_LINKER_MUTEX_COUNTER(v)     (((v)&0x1FFC) >> 2)
-
 bh_linker_dlopen_ext_t bh_linker_dlopen_ext = NULL;
 bh_linker_do_dlopen_t bh_linker_do_dlopen = NULL;
 bh_linker_get_error_buffer_t bh_linker_get_error_buffer = NULL;
 bh_linker_bionic_format_dlerror_t bh_linker_bionic_format_dlerror = NULL;
 
 static pthread_mutex_t *bh_linker_g_dl_mutex = NULL;
-static bool bh_linker_g_dl_mutex_compatible = false;
-static pthread_key_t bh_linker_g_dl_mutex_key;
+
+#if BH_LINKER_MAYBE_NOT_SUPPORT_DL_INIT_FINI_MONITOR
+
+#define BH_LINKER_MUTEX_IS_UNLOCKED(v) (((v) & 0x3) == 0)
+#define BH_LINKER_MUTEX_COUNTER(v)     (((v) & 0x1FFC) >> 2)
 
 static bool bh_linker_check_lock_compatible_helper(bh_linker_mutex_internal_t *m, bool unlocked,
                                                    uint16_t counter, int owner_tid) {
@@ -76,7 +70,7 @@ static bool bh_linker_check_lock_compatible_helper(bh_linker_mutex_internal_t *m
          m->owner_tid == owner_tid;
 }
 
-static bool bh_linker_check_lock_compatible(void) {
+static bool bh_linker_is_mutex_compatible(void) {
   bool result = true;
   int tid = gettid();
   pthread_mutex_t mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
@@ -98,41 +92,39 @@ static bool bh_linker_check_lock_compatible(void) {
 
   return result;
 }
-
-#if __ANDROID_API__ < __ANDROID_API_L__
-static int bh_linker_init_android_4x(void) {
-#if defined(__arm__)
-  return NULL == (bh_linker_g_dl_mutex = bh_linker_mutex_get_by_stack()) ? -1 : 0;
-#else
-  return 0 != pthread_key_create(&bh_linker_g_dl_mutex_key, NULL) ? -1 : 0;
-#endif
-}
 #endif
 
 int bh_linker_init(void) {
-  bh_linker_g_dl_mutex_compatible = bh_linker_check_lock_compatible();
+#if BH_LINKER_MAYBE_NOT_SUPPORT_DL_INIT_FINI_MONITOR
+  if (!bh_linker_is_mutex_compatible()) return -1;
+#endif
+
   int api_level = bh_util_get_api_level();
 
   // for Android 4.x
 #if __ANDROID_API__ < __ANDROID_API_L__
-  if (api_level < __ANDROID_API_L__) return bh_linker_init_android_4x();
-#endif
-
-  if (!bh_linker_g_dl_mutex_compatible) {
-    // If the mutex ABI is not compatible, then we need to use an alternative.
-    if (0 != pthread_key_create(&bh_linker_g_dl_mutex_key, NULL)) return -1;
+  if (api_level < __ANDROID_API_L__) {
+    return NULL == (bh_linker_g_dl_mutex = bh_linker_mutex_get_by_stack()) ? -1 : 0;
   }
+#endif
 
   void *linker = bh_dl_open_linker();
   if (NULL == linker) goto err;
 
-  // for Android 5.0, 5.1, 7.0, 7.1 and all mutex ABI compatible cases
+  // for Android 5.0, 5.1, 7.0, 7.1
   if (__ANDROID_API_L__ == api_level || __ANDROID_API_L_MR1__ == api_level ||
       __ANDROID_API_N__ == api_level || __ANDROID_API_N_MR1__ == api_level ||
-      bh_linker_g_dl_mutex_compatible) {
-    bh_linker_g_dl_mutex = (pthread_mutex_t *)(bh_dl_dsym(linker, BH_CONST_SYM_G_DL_MUTEX));
-    if (NULL == bh_linker_g_dl_mutex && api_level >= __ANDROID_API_U__)
+      !bh_linker_is_support_dl_init_fini_monitor()) {
+    if (api_level > __ANDROID_API_U__) {
       bh_linker_g_dl_mutex = (pthread_mutex_t *)(bh_dl_dsym(linker, BH_CONST_SYM_G_DL_MUTEX_U_QPR2));
+    } else if (api_level == __ANDROID_API_U__) {
+      bh_linker_g_dl_mutex = (pthread_mutex_t *)(bh_dl_dsym(linker, BH_CONST_SYM_G_DL_MUTEX));
+      if (NULL == bh_linker_g_dl_mutex)
+        bh_linker_g_dl_mutex = (pthread_mutex_t *)(bh_dl_dsym(linker, BH_CONST_SYM_G_DL_MUTEX_U_QPR2));
+    } else if (api_level < __ANDROID_API_U__ && api_level >= __ANDROID_API_L__) {
+      bh_linker_g_dl_mutex = (pthread_mutex_t *)(bh_dl_dsym(linker, BH_CONST_SYM_G_DL_MUTEX));
+    }
+
     if (NULL == bh_linker_g_dl_mutex) goto err;
   }
 
@@ -171,26 +163,51 @@ void bh_linker_unlock(void) {
 }
 
 bool bh_linker_is_in_lock(void) {
-  if (__predict_false(!bh_linker_g_dl_mutex_compatible || NULL == bh_linker_g_dl_mutex)) {
-    return (intptr_t)(pthread_getspecific(bh_linker_g_dl_mutex_key)) > 0;
+#if BH_LINKER_MAYBE_NOT_SUPPORT_DL_INIT_FINI_MONITOR
+  bh_linker_mutex_internal_t *m = (bh_linker_mutex_internal_t *)bh_linker_g_dl_mutex;
+  uint16_t state = __atomic_load_n(&(m->state), __ATOMIC_RELAXED);
+  int owner_tid = (int)__atomic_load_n(&(m->owner_tid), __ATOMIC_RELAXED);
+  return !BH_LINKER_MUTEX_IS_UNLOCKED(state) && owner_tid == gettid();
+#else
+  return false;
+#endif
+}
+
+bool bh_linker_is_use_basename(void) {
+#if defined(__LP64__)
+  return false;
+#else
+  return bh_util_get_api_level() < __ANDROID_API_M__;
+#endif
+}
+
+bool bh_linker_elf_is_match(const char *linker_elf_name, const char *external_elf_name) {
+  if (__predict_false(bh_linker_is_use_basename())) {
+    if ('/' == linker_elf_name[0] && '/' != external_elf_name[0])
+      return bh_util_ends_with(linker_elf_name, external_elf_name);
+    else if ('/' != linker_elf_name[0] && '/' == external_elf_name[0])
+      return bh_util_ends_with(external_elf_name, linker_elf_name);
+    else
+      return 0 == strcmp(linker_elf_name, external_elf_name);
   } else {
-    bh_linker_mutex_internal_t *m = (bh_linker_mutex_internal_t *)bh_linker_g_dl_mutex;
-    uint16_t state = __atomic_load_n(&(m->state), __ATOMIC_RELAXED);
-    int owner_tid = (int)__atomic_load_n(&(m->owner_tid), __ATOMIC_RELAXED);
-    return !BH_LINKER_MUTEX_IS_UNLOCKED(state) && owner_tid == gettid();
+    if (__predict_true('/' != external_elf_name[0])) {
+      return bh_util_ends_with(linker_elf_name, external_elf_name);
+    } else {
+      return 0 == strcmp(external_elf_name, linker_elf_name);
+    }
   }
 }
 
-void bh_linker_add_lock_count(void) {
-  if (__predict_false(!bh_linker_g_dl_mutex_compatible || NULL == bh_linker_g_dl_mutex)) {
-    intptr_t count = (intptr_t)(pthread_getspecific(bh_linker_g_dl_mutex_key));
-    pthread_setspecific(bh_linker_g_dl_mutex_key, (void *)(count + 1));
-  }
-}
-
-void bh_linker_sub_lock_count(void) {
-  if (__predict_false(!bh_linker_g_dl_mutex_compatible || NULL == bh_linker_g_dl_mutex)) {
-    intptr_t count = (intptr_t)(pthread_getspecific(bh_linker_g_dl_mutex_key));
-    pthread_setspecific(bh_linker_g_dl_mutex_key, (void *)(count - 1));
-  }
+bool bh_linker_is_support_dl_init_fini_monitor(void) {
+#if defined(__aarch64__)
+  return true;
+#elif defined(__arm__)
+#if __ANDROID_API__ >= __ANDROID_API_L__
+  return true;
+#else
+  return bh_util_get_api_level() >= __ANDROID_API_L__;
+#endif
+#else
+  return false;
+#endif
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2023 ByteDance Inc.
+// Copyright (c) 2021-2024 ByteDance Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,7 @@
 
 // Created by Kelun Cai (caikelun@bytedance.com) on 2021-04-11.
 
-// version 1.0.4
+// version 1.0.5
 
 #include "bytesig.h"
 
@@ -96,8 +96,8 @@ end:
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wpadded"
 typedef struct {
-  pid_t tids[BYTESIG_PROTECTED_THREADS_MAX];
-  sigjmp_buf *jbufs[BYTESIG_PROTECTED_THREADS_MAX];
+  pid_t tids[BYTESIG_PROTECTED_THREADS_MAX];         // atomic
+  sigjmp_buf *jbufs[BYTESIG_PROTECTED_THREADS_MAX];  // atomic
   union {
     struct sigaction64 prev_action64;
     struct sigaction prev_action;
@@ -128,7 +128,7 @@ __attribute__((noinline)) static void bytesig_handler_internal(int signum, sigin
   pid_t tid = gettid();
   if (__predict_false(0 == tid)) tid = (pid_t)syscall(SYS_gettid);
   for (size_t i = 0; i < BYTESIG_PROTECTED_THREADS_MAX; i++) {
-    if (__predict_false(tid == __atomic_load_n(&(sig->tids[i]), __ATOMIC_RELAXED))) {
+    if (__predict_false(tid == __atomic_load_n(&sig->tids[i], __ATOMIC_ACQUIRE))) {
       BYTESIG_LOG("siglongjmp signal %d (code %d) at %zu", signum, siginfo->si_code, i);
 
       unsigned int ret_signum = (((unsigned int)signum & 0xFFU) << 16U);
@@ -139,7 +139,7 @@ __attribute__((noinline)) static void bytesig_handler_internal(int signum, sigin
         ret_code = (unsigned int)(-(siginfo->si_code)) & 0xFFU;
       int ret_val = (int)(ret_signum | ret_code);
 
-      siglongjmp(*(__atomic_load_n(&(sig->jbufs[i]), __ATOMIC_RELAXED)), ret_val);
+      siglongjmp(*(__atomic_load_n(&sig->jbufs[i], __ATOMIC_RELAXED)), ret_val);
     }
   }
 
@@ -202,19 +202,18 @@ int bytesig_init(int signum) {
 
 #define SA_EXPOSE_TAGBITS 0x00000800
 
-#define REGISTER_SIGNAL_HANDLER(suffix)                                                                     \
-  do {                                                                                                      \
-    struct sigaction##suffix act;                                                                           \
-    memset(&act, 0, sizeof(struct sigaction##suffix));                                                      \
-    sigfillset##suffix(&act.sa_mask);                                                                       \
-    act.sa_sigaction = bytesig_handler;                                                                     \
-    act.sa_flags = SA_SIGINFO | SA_ONSTACK | SA_RESTART | SA_EXPOSE_TAGBITS;                                \
-    if (__predict_false(                                                                                    \
-            0 !=                                                                                            \
-            ((bytesig_sigaction##suffix##_t)bytesig_sigaction)(signum, &act, &sig->prev_action##suffix))) { \
-      free(sig);                                                                                            \
-      goto end;                                                                                             \
-    }                                                                                                       \
+#define REGISTER_SIGNAL_HANDLER(suffix)                                          \
+  do {                                                                           \
+    struct sigaction##suffix act;                                                \
+    memset(&act, 0, sizeof(struct sigaction##suffix));                           \
+    sigfillset##suffix(&act.sa_mask);                                            \
+    act.sa_sigaction = bytesig_handler;                                          \
+    act.sa_flags = SA_SIGINFO | SA_ONSTACK | SA_RESTART | SA_EXPOSE_TAGBITS;     \
+    if (__predict_false(0 != ((bytesig_sigaction##suffix##_t)bytesig_sigaction)( \
+                                 signum, &act, &sig->prev_action##suffix))) {    \
+      free(sig);                                                                 \
+      goto end;                                                                  \
+    }                                                                            \
   } while (0)
 
   // register the signal handler, we start off with all signals blocked
@@ -243,7 +242,7 @@ void bytesig_protect(pid_t tid, sigjmp_buf *jbuf, const int signums[], size_t si
     // check repeated thread
     bool repeated = false;
     for (size_t j = 0; j < BYTESIG_PROTECTED_THREADS_MAX; j++) {
-      if (__predict_false(tid == sig->tids[j])) {
+      if (__predict_false(tid == __atomic_load_n(&sig->tids[j], __ATOMIC_RELAXED))) {
         repeated = true;
         break;
       }
@@ -253,14 +252,12 @@ void bytesig_protect(pid_t tid, sigjmp_buf *jbuf, const int signums[], size_t si
     // save thread-ID and jump buffer
     size_t j = 0;
     while (1) {
-      if (0 == sig->tids[j]) {
-        pid_t expected = 0;
-        if (__atomic_compare_exchange_n(&sig->tids[j], &expected, tid, false, __ATOMIC_ACQUIRE,
-                                        __ATOMIC_RELAXED)) {
-          sig->jbufs[j] = jbuf;
-          BYTESIG_LOG("protect_start signal %d at %zu", signum, j);
-          break;  // finished
-        }
+      pid_t expected = 0;
+      if (__atomic_compare_exchange_n(&sig->tids[j], &expected, tid, false, __ATOMIC_RELEASE,
+                                      __ATOMIC_RELAXED)) {
+        __atomic_store_n(&sig->jbufs[j], jbuf, __ATOMIC_RELAXED);
+        BYTESIG_LOG("protect_start signal %d at %zu", signum, j);
+        break;  // finished
       }
 
       j++;
@@ -280,9 +277,9 @@ void bytesig_unprotect(pid_t tid, const int signums[], size_t signums_cnt) {
 
     // free thread-ID and jump buffer
     for (size_t j = 0; j < BYTESIG_PROTECTED_THREADS_MAX; j++) {
-      if (tid == sig->tids[j]) {
-        sig->jbufs[j] = NULL;
-        __atomic_store_n(&sig->tids[j], 0, __ATOMIC_RELEASE);
+      pid_t expected = tid;
+      if (__atomic_compare_exchange_n(&sig->tids[j], &expected, 0, false, __ATOMIC_RELEASE,
+                                      __ATOMIC_RELAXED)) {
         BYTESIG_LOG("protect_end signal %d at %zu", signum, j);
         break;  // finished
       }

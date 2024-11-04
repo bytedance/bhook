@@ -19,6 +19,9 @@ android {
         externalNativeBuild {
             cmake {
                 abiFilters rootProject.ext.abiFilters.split(",")
+                if(rootProject.ext.dependencyOnLocalLibrary) {
+                    arguments "-DDEPENDENCY_ON_LOCAL_LIBRARY=ON"
+                }
             }
         }
     }
@@ -61,8 +64,10 @@ dependencies {
     if (rootProject.ext.dependencyOnLocalLibrary) {
         implementation project(':bytehook')
     } else {
-        implementation 'com.bytedance:bytehook:1.0.10'
+        implementation 'com.bytedance:bytehook:1.1.0'
     }
+    implementation project(':bytehook_systest')
 }
 
+apply from: rootProject.file('gradle/prefab_bypass.gradle')
 apply from: rootProject.file('gradle/sanitizer.gradle')
