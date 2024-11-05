@@ -9,6 +9,7 @@ android {
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
+        consumerProguardFiles 'consumer-rules.pro'
         ndk {
             abiFilters rootProject.ext.abiFilters.split(",")
         }
@@ -36,7 +37,7 @@ android {
             minifyEnabled false
         }
         release {
-            minifyEnabled true
+            minifyEnabled false
         }
     }
     packagingOptions {

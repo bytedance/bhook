@@ -47,6 +47,27 @@ project.afterEvaluate {
                 }
             }
         }
+        tasks."configureCMakeRelWithDebInfo[$arch]".doFirst {
+            def prefabPackageFiles = abi.variant.prefabPackages.files
+            for (File file : prefabPackageFiles) {
+                def libsDir = findFirstLibsSubdirectory(file)
+                def libsArchDir = new File(libsDir, dirName)
+                if (!libsArchDir.exists()) {
+                    libsArchDir.mkdirs()
+                    def abiJsonFile = new File(libsArchDir, "abi.json")
+                    def abiContent = "{\n" +
+                            "  \"abi\": \"$abiName\",\n" +
+                            "  \"api\": 16,\n" +
+                            "  \"ndk\": 23,\n" +
+                            "  \"stl\": \"none\",\n" +
+                            "  \"static\": false\n" +
+                            "}"
+                    abiJsonFile.write(abiContent)
+                    def dummySoFile = new File(libsArchDir, "libshadowhook.so")
+                    dummySoFile.createNewFile()
+                }
+            }
+        }
     }
 }
 
