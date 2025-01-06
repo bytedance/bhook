@@ -155,8 +155,8 @@ void bh_elf_relocator_unhook(bh_elf_t *elf, bh_task_t *task) {
   // get sym and gots
   bh_array_t gots = BH_ARRAY_INITIALIZER(&gots);
   bh_array_t prots = BH_ARRAY_INITIALIZER(&prots);
-  ElfW(Sym) *sym =
-      bh_elf_find_symbol_and_gots_by_symbol_name(elf, task->sym_name, task->callee_addr, &gots, &prots);
+  ElfW(Sym) *sym = bh_elf_find_symbol_and_gots_by_symbol_name(
+      elf, task->sym_name, BYTEHOOK_IS_MANUAL_MODE ? task->new_func : NULL, &gots, &prots);
   if (NULL == sym || 0 == gots.count) {
     bh_task_do_hooked_callback(task, BYTEHOOK_STATUS_CODE_NOSYM, elf->pathname, NULL);
     bh_array_free(&gots);
