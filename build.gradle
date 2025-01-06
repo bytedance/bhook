@@ -16,14 +16,13 @@ ext {
     ndkVersion = "23.2.8568313"
     cmakeVersion = "3.30.5"
     shadowhookVersion = "1.1.1"
-//    abiFilters = "armeabi-v7a,arm64-v8a,x86,x86_64"
     abiFilters = "armeabi-v7a,arm64-v8a,x86,x86_64"
     useASAN = false
     dependencyOnLocalLibrary = true
 
     POM_GROUP_ID = "com.bytedance"
     POM_ARTIFACT_ID = "bytehook"
-    POM_VERSION_NAME = "1.1.0"
+    POM_VERSION_NAME = "1.1.1"
 
     POM_NAME = "bytehook"
     POM_DESCRIPTION = "ByteHook is an Android PLT hook library which supports armeabi-v7a, arm64-v8a, x86 and x86_64."

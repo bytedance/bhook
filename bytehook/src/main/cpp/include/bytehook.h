@@ -48,7 +48,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define BYTEHOOK_VERSION "1.1.0"
+#define BYTEHOOK_VERSION "1.1.1"
 
 #define BYTEHOOK_STATUS_CODE_OK                  0
 #define BYTEHOOK_STATUS_CODE_UNINIT              1

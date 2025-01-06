@@ -23,51 +23,42 @@
 
 project.afterEvaluate {
     def archList = ["x86", "x86_64"]
+
+    // Helper function to configure prefab for a specific task
+    def configurePrefabForTask = { taskName, arch, dirName, abiName ->
+        def task = tasks.findByName("${taskName}[$arch]")
+        if (task != null) {
+            task.doFirst {
+                def prefabPackageFiles = abi.variant.prefabPackages.files
+                for (File file : prefabPackageFiles) {
+                    def libsDir = findFirstLibsSubdirectory(file)
+                    def libsArchDir = new File(libsDir, dirName)
+                    if (!libsArchDir.exists()) {
+                        libsArchDir.mkdirs()
+                        def abiJsonFile = new File(libsArchDir, "abi.json")
+                        def abiContent = """
+                            {
+                              "abi": "$abiName",
+                              "api": 16,
+                              "ndk": 23,
+                              "stl": "none",
+                              "static": false
+                            }""".stripIndent()
+                        abiJsonFile.write(abiContent)
+                        def dummySoFile = new File(libsArchDir, "libshadowhook.so")
+                        dummySoFile.createNewFile()
+                    }
+                }
+            }
+        }
+    }
+
+    // Configure tasks for each architecture
     for(arch in archList) {
         def abiName = "$arch"
         def dirName = "android.$arch"
-        tasks."configureCMakeDebug[$arch]".doFirst {
-            def prefabPackageFiles = abi.variant.prefabPackages.files
-            for (File file : prefabPackageFiles) {
-                def libsDir = findFirstLibsSubdirectory(file)
-                def libsArchDir = new File(libsDir, dirName)
-                if (!libsArchDir.exists()) {
-                    libsArchDir.mkdirs()
-                    def abiJsonFile = new File(libsArchDir, "abi.json")
-                    def abiContent = "{\n" +
-                            "  \"abi\": \"$abiName\",\n" +
-                            "  \"api\": 16,\n" +
-                            "  \"ndk\": 23,\n" +
-                            "  \"stl\": \"none\",\n" +
-                            "  \"static\": false\n" +
-                            "}"
-                    abiJsonFile.write(abiContent)
-                    def dummySoFile = new File(libsArchDir, "libshadowhook.so")
-                    dummySoFile.createNewFile()
-                }
-            }
-        }
-        tasks."configureCMakeRelWithDebInfo[$arch]".doFirst {
-            def prefabPackageFiles = abi.variant.prefabPackages.files
-            for (File file : prefabPackageFiles) {
-                def libsDir = findFirstLibsSubdirectory(file)
-                def libsArchDir = new File(libsDir, dirName)
-                if (!libsArchDir.exists()) {
-                    libsArchDir.mkdirs()
-                    def abiJsonFile = new File(libsArchDir, "abi.json")
-                    def abiContent = "{\n" +
-                            "  \"abi\": \"$abiName\",\n" +
-                            "  \"api\": 16,\n" +
-                            "  \"ndk\": 23,\n" +
-                            "  \"stl\": \"none\",\n" +
-                            "  \"static\": false\n" +
-                            "}"
-                    abiJsonFile.write(abiContent)
-                    def dummySoFile = new File(libsArchDir, "libshadowhook.so")
-                    dummySoFile.createNewFile()
-                }
-            }
-        }
+        configurePrefabForTask("configureCMakeDebug", arch, dirName, abiName)
+        configurePrefabForTask("configureCMakeRelWithDebInfo", arch, dirName, abiName)
     }
 }
 

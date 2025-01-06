@@ -58,7 +58,7 @@ dependencies {
     if (rootProject.ext.dependencyOnLocalLibrary) {
         implementation project(':bytehook')
     } else {
-        implementation 'com.bytedance:bytehook:1.1.0'
+        implementation 'com.bytedance:bytehook:' + rootProject.ext.POM_VERSION_NAME
     }
 }
 apply from: rootProject.file('gradle/prefab_bypass.gradle')
