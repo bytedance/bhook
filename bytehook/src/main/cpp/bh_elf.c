@@ -65,6 +65,10 @@
 #define BH_ELF_R_JUMP_SLOT R_X86_64_JUMP_SLOT
 #define BH_ELF_R_GLOB_DAT  R_X86_64_GLOB_DAT
 #define BH_ELF_R_ABS       R_X86_64_64
+#elif defined(__riscv)
+#define BH_ELF_R_JUMP_SLOT R_RISCV_JUMP_SLOT
+#define BH_ELF_R_GLOB_DAT  -1
+#define BH_ELF_R_ABS       R_RISCV_64
 #endif
 
 #if defined(__LP64__)
@@ -464,7 +468,9 @@ static int bh_elf_check_reloc(bh_elf_t *self, const Elf_Reloc *rel, const char *
   if (plt_jump) {
     if (BH_ELF_R_JUMP_SLOT != r_type) return 0;  // continue;
   } else {
+#ifndef __riscv
     if (BH_ELF_R_GLOB_DAT != r_type && BH_ELF_R_ABS != r_type) return 0;  // continue;
+#endif
   }
 
   if (NULL == *sym) {
