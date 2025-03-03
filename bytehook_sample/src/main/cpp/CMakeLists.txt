@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.30.5)
-if((${ANDROID_ABI} STREQUAL "arm64-v8a") OR (${ANDROID_ABI} STREQUAL "x86_64"))
+if((${ANDROID_ABI} STREQUAL "arm64-v8a") OR (${ANDROID_ABI} STREQUAL "x86_64") OR (${ANDROID_ABI} STREQUAL "riscv64"))
     set(ARCH_LINK_FLAGS "-Wl,-z,max-page-size=16384")
 else()
     set(ARCH_LINK_FLAGS "")

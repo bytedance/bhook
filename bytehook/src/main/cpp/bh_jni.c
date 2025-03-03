@@ -111,6 +111,8 @@ static jstring bh_jni_get_arch(JNIEnv *env, jobject thiz) {
   char *arch = "x86";
 #elif defined(__x86_64__)
   char *arch = "x86_64";
+#elif defined(__riscv)
+  char *arch = "riscv64";
 #else
   char *arch = "unsupported";
 #endif
