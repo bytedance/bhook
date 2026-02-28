@@ -204,9 +204,11 @@ int bytehook_get_mode(void) {
 }
 
 void bytehook_add_dlopen_callback(bytehook_pre_dlopen_t pre, bytehook_post_dlopen_t post, void *data) {
+  if (BYTEHOOK_STATUS_CODE_OK != bytehook_init_errno) return;
   bh_dl_monitor_add_dlopen_callback(pre, post, data);
 }
 
 void bytehook_del_dlopen_callback(bytehook_pre_dlopen_t pre, bytehook_post_dlopen_t post, void *data) {
+  if (BYTEHOOK_STATUS_CODE_OK != bytehook_init_errno) return;
   bh_dl_monitor_del_dlopen_callback(pre, post, data);
 }
