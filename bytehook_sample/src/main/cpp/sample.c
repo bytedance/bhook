@@ -13,9 +13,9 @@
 #define SAMPLE_TAG "bytehook_tag"
 
 #pragma clang optimize off
-void sample_test_strlen(int benchmark) {
-  if (!benchmark) __android_log_print(ANDROID_LOG_INFO, SAMPLE_TAG, "sample pre strlen");
-  size_t len = strlen(benchmark ? "1" : "bytehook manual test");
-  if (!benchmark) __android_log_print(ANDROID_LOG_INFO, SAMPLE_TAG, "sample post strlen = %zu", len);
+void sample_test_strlen(void) {
+  __android_log_print(ANDROID_LOG_INFO, SAMPLE_TAG, "libsample.so pre strlen()");
+  size_t len = strlen("bytehook manual test");
+  __android_log_print(ANDROID_LOG_INFO, SAMPLE_TAG, "libsample.so post strlen(). return value: %zu", len);
 }
 #pragma clang optimize on

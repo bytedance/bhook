@@ -13,8 +13,8 @@ public class NativeHacker {
     public static void doDlclose() {
         nativeDoDlclose();
     }
-    public static void doRun(boolean benchmark) {
-        nativeDoRun(benchmark ? 1 : 0);
+    public static void doRun() {
+        nativeDoRun();
     }
 
     private static native int nativeBytehookHook();
@@ -23,5 +23,5 @@ public class NativeHacker {
 
     private static native void nativeDoDlopen();
     private static native void nativeDoDlclose();
-    private static native void nativeDoRun(int benchmark);
+    private static native void nativeDoRun();
 }

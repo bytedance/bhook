@@ -1,20 +1,20 @@
 plugins {
-    id 'com.android.application' version '8.7.1' apply false
-    id 'com.android.library' version '8.7.1' apply false
+    id 'com.android.application' version '8.10.1' apply false
+    id 'com.android.library' version '8.10.1' apply false
 }
 
-task clean(type: Delete) {
-    delete rootProject.buildDir
+tasks.register('clean', Delete) {
+    delete rootProject.getLayout.getBuildDirectory
 }
 
 ext {
     minSdkVersion = 16
-    compileSdkVersion = 35
-    targetSdkVersion = 35
-    buildToolsVersion = "35.0.0"
+    compileSdkVersion = 36
+    targetSdkVersion = 36
+    buildToolsVersion = "36.0.0"
     javaVersion = JavaVersion.VERSION_1_7
     ndkVersion = "23.2.8568313"
-    cmakeVersion = "3.30.5"
+    cmakeVersion = "4.0.3"
     shadowhookVersion = "1.1.1"
     abiFilters = "armeabi-v7a,arm64-v8a,x86,x86_64"
     useASAN = false

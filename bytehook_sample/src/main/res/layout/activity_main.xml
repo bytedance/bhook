@@ -1,104 +1,78 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     tools:context=".MainActivity">
-
-    <ScrollView
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content">
-
-        <LinearLayout
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+        <TextView style="@style/Theme.TextView.Top"
+            android:text="adb logcat -s bytehook_tag" />
+        <ScrollView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
+            android:background="@color/white"
             android:orientation="vertical">
-
-            <TextView style="@style/Theme.TextView.Top"
-                android:text="adb logcat -b main -s bytehook_tag" />
-
-            <TextView style="@style/Theme.TextView.Title"
-                android:text="1. benchmark test"  />
-
-            <RadioGroup xmlns:android="http://schemas.android.com/apk/res/android"
-                android:checkedButton="@+id/radio_without"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="10dp">
-                <RadioButton style="@style/Theme.RadioButton"
-                    android:id="@+id/radio_without"
-                    android:text="without hook"
-                    android:onClick="onRadioButtonClicked"
-                    tools:ignore="UsingOnClickInXml"/>
-                <RadioButton style="@style/Theme.RadioButton"
-                    android:id="@+id/radio_bytehook"
-                    android:text="bytehook"
-                    android:onClick="onRadioButtonClicked"
-                    tools:ignore="UsingOnClickInXml"/>
-            </RadioGroup>
+                android:orientation="vertical">
 
-            <Button style="@style/Theme.Button"
-                android:id="@+id/dlopenButton"
-                android:onClick="onDlopenClick"
-                android:text="dlopen() libsample.so"
-                tools:ignore="UsingOnClickInXml" />
+                <TextView style="@style/Theme.TextView.Title"
+                    android:text="unit test"  />
 
-            <Button style="@style/Theme.Button"
-                android:id="@+id/dlcloseButton"
-                android:onClick="onDlcloseClick"
-                android:text="dlclose() libsample.so"
-                tools:ignore="UsingOnClickInXml" />
+                <Button style="@style/Theme.Button"
+                    android:id="@+id/unitTestHook"
+                    android:text="hook strlen()" />
 
-            <Button style="@style/Theme.Button"
-                android:id="@+id/testButton"
-                android:onClick="onTestClick"
-                android:text="call strlen() once"
-                tools:ignore="UsingOnClickInXml" />
+                <Button style="@style/Theme.Button"
+                    android:id="@+id/unitTestUnhook"
+                    android:text="unhook strlen()" />
 
-            <Button style="@style/Theme.Button"
-                android:id="@+id/benchmarkButton"
-                android:onClick="onBenchmarkClick"
-                android:text="benchmark strlen()"
-                tools:ignore="UsingOnClickInXml" />
+                <Button style="@style/Theme.Button.Red"
+                    android:id="@+id/unitTestLoad"
+                    android:text="dlopen libsample.so" />
 
-            <TextView style="@style/Theme.TextView.Title"
-                android:text="2. system test"  />
+                <Button style="@style/Theme.Button.Red"
+                    android:id="@+id/unitTestUnload"
+                    android:text="dlclose libsample.so" />
 
-            <Button style="@style/Theme.Button"
-                android:id="@+id/systemtestTestHook"
-                android:onClick="onSystemTestHookClick"
-                android:text="hook"
-                tools:ignore="UsingOnClickInXml" />
+                <Button style="@style/Theme.Button.Red"
+                    android:id="@+id/unitTestRun"
+                    android:text="run" />
 
-            <Button style="@style/Theme.Button"
-                android:id="@+id/systemtestTestUnhook"
-                android:onClick="onSystemTestUnhookClick"
-                android:text="unhook"
-                tools:ignore="UsingOnClickInXml" />
+                <TextView style="@style/Theme.TextView.Title"
+                    android:text="system test"  />
 
-            <Button style="@style/Theme.Button.Red"
-                android:id="@+id/systemtestTestRun"
-                android:onClick="onSystemTestRunClick"
-                android:text="run"
-                tools:ignore="UsingOnClickInXml" />
+                <Button style="@style/Theme.Button"
+                    android:id="@+id/systemtestTestHook"
+                    android:text="hook"
+                    tools:ignore="UsingOnClickInXml" />
 
-            <TextView style="@style/Theme.TextView.Title"
-                android:text="3. operation records"  />
+                <Button style="@style/Theme.Button"
+                    android:id="@+id/systemtestTestUnhook"
+                    android:text="unhook" />
 
-            <Button style="@style/Theme.Button"
-                android:id="@+id/getRecords"
-                android:onClick="onGetRecordsClick"
-                android:text="get records (as a string)"
-                tools:ignore="UsingOnClickInXml" />
+                <Button style="@style/Theme.Button.Red"
+                    android:id="@+id/systemtestTestRun"
+                    android:text="run" />
 
-            <Button style="@style/Theme.Button"
-                android:id="@+id/dumpRecords"
-                android:onClick="onDumpRecordsClick"
-                android:text="dump records (to FD)"
-                tools:ignore="UsingOnClickInXml" />
+                <TextView style="@style/Theme.TextView.Title"
+                    android:text="operation records"  />
 
-        </LinearLayout>
-    </ScrollView>
-</LinearLayout>
+                <Button style="@style/Theme.Button"
+                    android:id="@+id/getRecords"
+                    android:text="get records (as a string)" />
+
+                <Button style="@style/Theme.Button"
+                    android:id="@+id/dumpRecords"
+                    android:text="dump records (to FD)" />
+            </LinearLayout>
+        </ScrollView>
+    </LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

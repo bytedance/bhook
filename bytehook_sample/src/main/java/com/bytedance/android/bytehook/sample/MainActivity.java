@@ -1,9 +1,14 @@
 package com.bytedance.android.bytehook.sample;
 
+import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -20,214 +25,109 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class MainActivity extends AppCompatActivity {
 
     private String TAG = "bytehook_tag";
-    HookType hookType = HookType.WITHOUT;
+    boolean isHooked = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return insets;
+        });
 
-        mThreadNum = getIntent().getIntExtra("threadnum", 100);
-        mCallNum = mTotalNum / mThreadNum;
-
-        int benchmarkType = getIntent().getIntExtra("benchmark", 0);
-        if(benchmarkType != 0) {
-            switch (benchmarkType) {
-                case 1:
-                    changeHookType(HookType.BYTEHOOK);
-                    break;
-                case 4:
-                    break;
+        findViewById(R.id.unitTestHook).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                if (!isHooked) {
+                    NativeHacker.bytehookHook();
+                    isHooked = true;
+                }
             }
+        });
 
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException ignored) {
+        findViewById(R.id.unitTestUnhook).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                if (isHooked) {
+                    NativeHacker.bytehookUnhook();
+                    isHooked = false;
+                }
             }
+        });
 
-            benchmarkTest();
-        }
-    }
+        findViewById(R.id.unitTestLoad).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                NativeHacker.doDlopen();
+            }
+        });
 
-    public void onRadioButtonClicked(View view) {
-        switch(view.getId()) {
-            case R.id.radio_without:
-                changeHookType(HookType.WITHOUT);
-                break;
-            case R.id.radio_bytehook:
-                changeHookType(HookType.BYTEHOOK);
-//                System.loadLibrary("sample"); // test load-after-hook
-                break;
-        }
-    }
+        findViewById(R.id.unitTestUnload).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                NativeHacker.doDlclose();
+            }
+        });
 
-    public void onTestClick(View view) {
-        Log.i(TAG, "onClick pre strlen");
-        NativeHacker.doRun(false);
-        Log.i(TAG, "onClick post strlen");
-    }
+        findViewById(R.id.unitTestRun).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                Log.i(TAG, "onClick pre strlen()");
+                NativeHacker.doRun();
+                Log.i(TAG, "onClick post strlen()");
+            }
+        });
 
-    public void onBenchmarkClick(View view) {
-        findViewById(R.id.benchmarkButton).setEnabled(false);
-        benchmarkTest();
-    }
+        findViewById(R.id.systemtestTestHook).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                SysTest.hook();
+            }
+        });
 
-    public void onDlopenClick(View view) {
-        NativeHacker.doDlopen();
-    }
+        findViewById(R.id.systemtestTestUnhook).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                SysTest.unhook();
+            }
+        });
 
-    public void onDlcloseClick(View view) {
-        NativeHacker.doDlclose();
-    }
+        findViewById(R.id.systemtestTestRun).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                SysTest.run();
+            }
+        });
 
-    private enum HookType {
-        WITHOUT, BYTEHOOK, NONHOOK
-    }
-
-    private String getHookTypeName() {
-        switch (hookType) {
-            case WITHOUT:
-                return "without-hook";
-            case BYTEHOOK:
-                return "bytehook";
-            default:
-                return "unknown";
-        }
-    }
-
-    private void changeHookType(HookType newHookType) {
-        if(hookType == newHookType) {
-            return;
-        }
-
-        switch (hookType) {
-            case WITHOUT:
-                break;
-            case BYTEHOOK:
-                NativeHacker.bytehookUnhook();
-                break;
-        }
-
-        hookType = newHookType;
-
-        switch (hookType) {
-            case WITHOUT:
-                break;
-            case BYTEHOOK:
-                NativeHacker.bytehookHook();
-                break;
-        }
-    }
-
-    //
-    // benchmark test
-    //
-    private final int mTotalNum = 10000000;
-    private int mThreadNum = 100;
-    private int mCallNum = 100000;
-    private long[] mStartTime;
-    private long[] mEndTime;
-    private AtomicInteger unfinishedThreadNum = new AtomicInteger(0);
-
-    private void benchmarkTest() {
-        if(!unfinishedThreadNum.compareAndSet(0, mThreadNum)) {
-            Log.i(TAG, "The last benchmark test has not been completed.");
-            return;
-        }
-
-        final int pid = android.os.Process.myPid();
-
-        final String fHookType = getHookTypeName();
-
-        mStartTime = new long[mThreadNum];
-        mEndTime = new long[mThreadNum];
-
-        for(int i = 0; i < mThreadNum; i++) {
-            final int threadIdx = i;
-            Thread thread = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    mStartTime[threadIdx] = System.currentTimeMillis();
-
-                    for (int i = 0; i < mCallNum; i++) {
-                        NativeHacker.doRun(true);
-                    }
-
-                    mEndTime[threadIdx] = System.currentTimeMillis();
-
-                    if(unfinishedThreadNum.decrementAndGet() == 0) {
-                        long totalCost = 0;
-                        long maxCost = 0;
-                        for(int i = 0; i < mThreadNum; i++) {
-                            long cost = mEndTime[i] - mStartTime[i];
-                            totalCost += cost;
-                            if (cost > maxCost) {
-                                maxCost = cost;
-                            }
-                            //Log.i(TAG, "Thread " + i + " cost: " + cost + " ms");
-                        }
-                        long avgCost = totalCost / mThreadNum;
-                        long qps = (long)((double)mTotalNum / ((double)avgCost / 1000.0));
-                        Log.i(TAG, fHookType + " (PID: " + pid + ") [benchmark test] threads num: " + mThreadNum + ", calls/thread: " + mCallNum);
-                        Log.i(TAG, fHookType + " (PID: " + pid + ") [benchmark test] max cost: " + maxCost + " ms, avg cost: " + avgCost + " ms, qps: " + qps);
-                        Log.i(TAG, fHookType + " (PID: " + pid + ") [benchmark test] finished");
-
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                findViewById(R.id.benchmarkButton).setEnabled(true);
-                            }
-                        });
+        findViewById(R.id.getRecords).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                String records = ByteHook.getRecords();
+//                String records = ByteHook.getRecords(ByteHook.RecordItem.CALLER_LIB_NAME, ByteHook.RecordItem.OP, ByteHook.RecordItem.LIB_NAME, ByteHook.RecordItem.SYM_NAME, ByteHook.RecordItem.ERRNO, ByteHook.RecordItem.STUB);
+                if (records != null) {
+                    for (String line : records.split("\n")) {
+                        Log.i(TAG, line);
                     }
                 }
-            });
-            thread.setName("test_thd_" + i);
-            thread.start();
-        }
-    }
-
-    public void onSystemTestHookClick(View view) {
-        SysTest.hook();
-    }
-
-    public void onSystemTestUnhookClick(View view) {
-        SysTest.unhook();
-    }
-
-    public void onSystemTestRunClick(View view) {
-        SysTest.run();
-    }
-
-
-    public void onGetRecordsClick(View view) {
-        String records = ByteHook.getRecords();
-//        String records = ByteHook.getRecords(ByteHook.RecordItem.CALLER_LIB_NAME, ByteHook.RecordItem.OP, ByteHook.RecordItem.LIB_NAME, ByteHook.RecordItem.SYM_NAME, ByteHook.RecordItem.ERRNO, ByteHook.RecordItem.STUB);
-        if (records != null) {
-            for (String line : records.split("\n")) {
-                Log.i(TAG, line);
             }
-        }
-    }
+        });
 
-    public void onDumpRecordsClick(View view) {
-        String pathname = getApplicationContext().getFilesDir() + "/bytehook_records.txt";
-        NativeHacker.nativeDumpRecords(pathname);
+        findViewById(R.id.dumpRecords).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                String pathname = getApplicationContext().getFilesDir() + "/bytehook_records.txt";
+                NativeHacker.nativeDumpRecords(pathname);
 
-        BufferedReader br = null;
-        try {
-            br = new BufferedReader(new FileReader(pathname));
-            String line;
-            while ((line = br.readLine()) != null) {
-                Log.i(TAG, line);
-            }
-        } catch (Throwable ignored) {
-        } finally {
-            if (br != null) {
+                BufferedReader br = null;
                 try {
-                    br.close();
-                } catch (Exception ignored) {
+                    br = new BufferedReader(new FileReader(pathname));
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        Log.i(TAG, line);
+                    }
+                } catch (Throwable ignored) {
+                } finally {
+                    if (br != null) {
+                        try {
+                            br.close();
+                        } catch (Exception ignored) {
+                        }
+                    }
                 }
             }
-        }
+        });
     }
 }

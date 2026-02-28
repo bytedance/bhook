@@ -49,7 +49,7 @@ static void hacker_jni_dump_records(JNIEnv *env, jobject thiz, jstring pathname)
 }
 
 static void *libsample_handle = NULL;
-typedef void (*sample_test_strlen_t)(int);
+typedef void (*sample_test_strlen_t)(void);
 static sample_test_strlen_t sample_test_strlen = NULL;
 
 static void hacker_jni_do_dlopen(JNIEnv *env, jobject thiz) {
@@ -67,11 +67,11 @@ static void hacker_jni_do_dlopen(JNIEnv *env, jobject thiz) {
   }
 }
 
-static void hacker_jni_do_run(JNIEnv *env, jobject thiz, jint benchmark) {
+static void hacker_jni_do_run(JNIEnv *env, jobject thiz) {
   (void)env;
   (void)thiz;
 
-  if (NULL != sample_test_strlen) sample_test_strlen(benchmark);
+  if (NULL != sample_test_strlen) sample_test_strlen();
 }
 
 static void hacker_jni_do_dlclose(JNIEnv *env, jobject thiz) {
@@ -94,7 +94,7 @@ static JNINativeMethod hacker_jni_methods[] = {
     {"nativeDumpRecords", "(Ljava/lang/String;)V", (void *)hacker_jni_dump_records},
     {"nativeDoDlopen", "()V", (void *)hacker_jni_do_dlopen},
     {"nativeDoDlclose", "()V", (void *)hacker_jni_do_dlclose},
-    {"nativeDoRun", "(I)V", (void *)hacker_jni_do_run}};
+    {"nativeDoRun", "()V", (void *)hacker_jni_do_run}};
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
   JNIEnv *env;

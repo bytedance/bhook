@@ -1,3 +1,3 @@
 #pragma once
 
-void sample_test_strlen(int benchmark);
+void sample_test_strlen(void);
