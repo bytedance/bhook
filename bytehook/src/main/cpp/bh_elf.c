@@ -246,8 +246,9 @@ static int bh_elf_parse_dynamic(bh_elf_t *self) {
       else
         bh_elf_parse_dynamic_unsafe(self, dynamic);
     }
-    BH_SIG_CATCH()
-    self->error = true;
+    BH_SIG_CATCH() {
+      self->error = true;
+    }
     BH_SIG_EXIT
   }
   pthread_mutex_unlock(&self->dyn_parse_lock);

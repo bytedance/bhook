@@ -88,8 +88,9 @@ static void bh_switch_destroy(bh_switch_t *self, bool hub_with_delay) {
 
 static bh_switch_t *bh_switch_manager_find(bh_switch_manager_t *mgr, ElfW(Sym) *sym) {
   bh_switch_t *self = NULL;
-  TAILQ_FOREACH(self, &mgr->switches, link)
-  if (self->sym == sym) break;
+  TAILQ_FOREACH(self, &mgr->switches, link) {
+    if (self->sym == sym) break;
+  }
 
   return self;
 }
