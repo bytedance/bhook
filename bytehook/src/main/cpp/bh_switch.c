@@ -104,10 +104,12 @@ bh_switch_manager_t *bh_switch_manager_create(void) {
 }
 
 void bh_switch_manager_destroy(bh_switch_manager_t *mgr) {
-  bh_switch_t *self;
+  bh_switch_t *self, *tmp;
   pthread_rwlock_wrlock(&mgr->switches_lock);
-  TAILQ_FOREACH(self, &mgr->switches, link)
-  bh_switch_destroy(self, false);
+  TAILQ_FOREACH_SAFE(self, &mgr->switches, link, tmp) {
+    TAILQ_REMOVE(&mgr->switches, self, link);
+    bh_switch_destroy(self, false);
+  }
   pthread_rwlock_unlock(&mgr->switches_lock);
 
   pthread_rwlock_destroy(&mgr->switches_lock);
