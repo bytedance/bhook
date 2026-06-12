@@ -276,9 +276,10 @@ static void *bh_dl_monitor_proxy_dlopen(const char *filename, int flags) {
   }
 
   // call dl_iterate_phdr() to update ELF-info-cache
-  if (NULL != bh_dl_monitor_post_dlopen && NULL != handle && !bh_linker_is_in_lock()) {
+  bh_dl_monitor_post_dlopen_t post_dlopen = __atomic_load_n(&bh_dl_monitor_post_dlopen, __ATOMIC_ACQUIRE);
+  if (NULL != post_dlopen && NULL != handle && !bh_linker_is_in_lock()) {
     BH_LOG_INFO("DL monitor: post dlopen(), filename: %s", filename);
-    bh_dl_monitor_post_dlopen(bh_dl_monitor_post_dlopen_arg);
+    post_dlopen(__atomic_load_n(&bh_dl_monitor_post_dlopen_arg, __ATOMIC_RELAXED));
   }
 
   bh_dl_monitor_call_cb_post(filename, NULL != handle ? 0 : -1);
@@ -312,9 +313,10 @@ static void *bh_dl_monitor_proxy_android_dlopen_ext(const char *filename, int fl
   }
 
   // call dl_iterate_phdr() to update ELF-info-cache
-  if (NULL != bh_dl_monitor_post_dlopen && NULL != handle && !bh_linker_is_in_lock()) {
+  bh_dl_monitor_post_dlopen_t post_dlopen = __atomic_load_n(&bh_dl_monitor_post_dlopen, __ATOMIC_ACQUIRE);
+  if (NULL != post_dlopen && NULL != handle && !bh_linker_is_in_lock()) {
     BH_LOG_INFO("DL monitor: post android_dlopen_ext(), filename: %s", filename);
-    bh_dl_monitor_post_dlopen(bh_dl_monitor_post_dlopen_arg);
+    post_dlopen(__atomic_load_n(&bh_dl_monitor_post_dlopen_arg, __ATOMIC_RELAXED));
   }
 
   bh_dl_monitor_call_cb_post(filename, NULL != handle ? 0 : -1);
@@ -335,9 +337,10 @@ static void *bh_dl_monitor_proxy_loader_dlopen(const char *filename, int flags, 
                                 flags, caller_addr);
 
   // call dl_iterate_phdr() to update ELF-info-cache
-  if (NULL != bh_dl_monitor_post_dlopen && NULL != handle && !bh_linker_is_in_lock()) {
+  bh_dl_monitor_post_dlopen_t post_dlopen = __atomic_load_n(&bh_dl_monitor_post_dlopen, __ATOMIC_ACQUIRE);
+  if (NULL != post_dlopen && NULL != handle && !bh_linker_is_in_lock()) {
     BH_LOG_INFO("DL monitor: post __loader_dlopen(), filename: %s", filename);
-    bh_dl_monitor_post_dlopen(bh_dl_monitor_post_dlopen_arg);
+    post_dlopen(__atomic_load_n(&bh_dl_monitor_post_dlopen_arg, __ATOMIC_RELAXED));
   }
 
   bh_dl_monitor_call_cb_post(filename, NULL != handle ? 0 : -1);
@@ -360,9 +363,10 @@ static void *bh_dl_monitor_proxy_loader_android_dlopen_ext(const char *filename,
                            bh_dl_monitor_loader_android_dlopen_ext_t, filename, flags, extinfo, caller_addr);
 
   // call dl_iterate_phdr() to update ELF-info-cache
-  if (NULL != bh_dl_monitor_post_dlopen && NULL != handle && !bh_linker_is_in_lock()) {
+  bh_dl_monitor_post_dlopen_t post_dlopen = __atomic_load_n(&bh_dl_monitor_post_dlopen, __ATOMIC_ACQUIRE);
+  if (NULL != post_dlopen && NULL != handle && !bh_linker_is_in_lock()) {
     BH_LOG_INFO("DL monitor: post __loader_android_dlopen_ext(), filename: %s", filename);
-    bh_dl_monitor_post_dlopen(bh_dl_monitor_post_dlopen_arg);
+    post_dlopen(__atomic_load_n(&bh_dl_monitor_post_dlopen_arg, __ATOMIC_RELAXED));
   }
 
   bh_dl_monitor_call_cb_post(filename, NULL != handle ? 0 : -1);
@@ -383,9 +387,10 @@ static int bh_dl_monitor_proxy_dlclose(void *handle) {
     ret = BYTEHOOK_CALL_PREV(bh_dl_monitor_proxy_dlclose, bh_dl_monitor_dlclose_t, handle);
 
   // call dl_iterate_phdr() to update ELF-info-cache
-  if (NULL != bh_dl_monitor_post_dlclose && 0 == ret && !bh_linker_is_in_lock()) {
+  bh_dl_monitor_post_dlclose_t post_dlclose = __atomic_load_n(&bh_dl_monitor_post_dlclose, __ATOMIC_ACQUIRE);
+  if (NULL != post_dlclose && 0 == ret && !bh_linker_is_in_lock()) {
     BH_LOG_INFO("DL monitor: post dlclose(), handle: %p", handle);
-    bh_dl_monitor_post_dlclose(wrlocked, bh_dl_monitor_post_dlclose_arg);
+    post_dlclose(wrlocked, __atomic_load_n(&bh_dl_monitor_post_dlclose_arg, __ATOMIC_RELAXED));
   }
 
   if (wrlocked) bh_dl_monitor_dlclose_unlock();
@@ -406,9 +411,10 @@ static int bh_dl_monitor_proxy_loader_dlclose(void *handle) {
     ret = BYTEHOOK_CALL_PREV(bh_dl_monitor_proxy_loader_dlclose, bh_dl_monitor_loader_dlclose_t, handle);
 
   // call dl_iterate_phdr() to update ELF-info-cache
-  if (NULL != bh_dl_monitor_post_dlclose && 0 == ret && !bh_linker_is_in_lock()) {
+  bh_dl_monitor_post_dlclose_t post_dlclose = __atomic_load_n(&bh_dl_monitor_post_dlclose, __ATOMIC_ACQUIRE);
+  if (NULL != post_dlclose && 0 == ret && !bh_linker_is_in_lock()) {
     BH_LOG_INFO("DL monitor: post __loader_dlclose(), handle: %p", handle);
-    bh_dl_monitor_post_dlclose(wrlocked, bh_dl_monitor_post_dlclose_arg);
+    post_dlclose(wrlocked, __atomic_load_n(&bh_dl_monitor_post_dlclose_arg, __ATOMIC_RELAXED));
   }
 
   if (wrlocked) bh_dl_monitor_dlclose_unlock();
@@ -514,33 +520,35 @@ int bh_dl_monitor_init(void) {
   static bool inited = false;
   static bool inited_ok = false;
 
-  if (inited) return inited_ok ? 0 : -1;  // Do not repeat the initialization.
+  if (__atomic_load_n(&inited, __ATOMIC_ACQUIRE))
+    return __atomic_load_n(&inited_ok, __ATOMIC_RELAXED) ? 0 : -1;
 
-  int r;
+  bool ok = false;
   pthread_mutex_lock(&lock);
-  if (!inited) {
-    inited = true;
+  if (!__atomic_load_n(&inited, __ATOMIC_RELAXED)) {
     BH_LOG_INFO("DL monitor: pre init");
-    if (0 == (r = bh_dl_monitor_hook())) {
-      inited_ok = true;
+    if (0 == bh_dl_monitor_hook()) {
+      ok = true;
+      __atomic_store_n(&inited_ok, true, __ATOMIC_RELAXED);
       BH_LOG_INFO("DL monitor: post init, OK");
     } else {
       BH_LOG_ERROR("DL monitor: post init, FAILED");
     }
+    __atomic_store_n(&inited, true, __ATOMIC_RELEASE);
   } else {
-    r = inited_ok ? 0 : -1;
+    ok = __atomic_load_n(&inited_ok, __ATOMIC_RELAXED);
   }
   pthread_mutex_unlock(&lock);
-  return r;
+  return ok ? 0 : -1;
 }
 
 void bh_dl_monitor_set_post_dlopen(bh_dl_monitor_post_dlopen_t cb, void *cb_arg) {
-  bh_dl_monitor_post_dlopen_arg = cb_arg;
+  __atomic_store_n(&bh_dl_monitor_post_dlopen_arg, cb_arg, __ATOMIC_RELAXED);
   __atomic_store_n(&bh_dl_monitor_post_dlopen, cb, __ATOMIC_RELEASE);
 }
 
 void bh_dl_monitor_set_post_dlclose(bh_dl_monitor_post_dlclose_t cb, void *cb_arg) {
-  bh_dl_monitor_post_dlclose_arg = cb_arg;
+  __atomic_store_n(&bh_dl_monitor_post_dlclose_arg, cb_arg, __ATOMIC_RELAXED);
   __atomic_store_n(&bh_dl_monitor_post_dlclose, cb, __ATOMIC_RELEASE);
 }
 

@@ -257,7 +257,8 @@ static int bh_elf_parse_dynamic(bh_elf_t *self) {
 }
 
 bh_elf_t *bh_elf_create(struct dl_phdr_info *info) {
-  if (0 == info->dlpi_phdr || NULL == info->dlpi_name || NULL == info->dlpi_phdr || 0 == info->dlpi_phnum)
+  if (0 == info->dlpi_addr || NULL == info->dlpi_name || '\0' == info->dlpi_name[0] ||
+      NULL == info->dlpi_phdr || 0 == info->dlpi_phnum)
     return NULL;
 
   bh_elf_t *self;
@@ -469,9 +470,7 @@ static int bh_elf_check_reloc(bh_elf_t *self, const Elf_Reloc *rel, const char *
   if (plt_jump) {
     if (BH_ELF_R_JUMP_SLOT != r_type) return 0;  // continue;
   } else {
-#ifndef __riscv
     if (BH_ELF_R_GLOB_DAT != r_type && BH_ELF_R_ABS != r_type) return 0;  // continue;
-#endif
   }
 
   if (NULL == *sym) {

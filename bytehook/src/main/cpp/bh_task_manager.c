@@ -103,20 +103,29 @@ static int bh_task_manager_init_dl_open_close_monitor(void) {
   static bool inited_ok = false;
   static bool initing = false;
 
-  if (inited || initing) return (inited_ok || initing) ? 0 : -1;  // Do not repeat the initialization.
+  if (__atomic_load_n(&inited, __ATOMIC_ACQUIRE))
+    return __atomic_load_n(&inited_ok, __ATOMIC_RELAXED) ? 0 : -1;
 
+  if (__atomic_load_n(&initing, __ATOMIC_RELAXED)) return 0;
+
+  bool ok = false;
   pthread_mutex_lock(&lock);
-  if (!inited) {
-    inited = true;
-    initing = true;
+  if (!__atomic_load_n(&inited, __ATOMIC_RELAXED)) {
+    __atomic_store_n(&initing, true, __ATOMIC_RELAXED);
     bh_elf_manager_load();
     bh_dl_monitor_set_post_dlopen(bh_task_manager_post_dlopen, NULL);
     bh_dl_monitor_set_post_dlclose(bh_task_manager_post_dlclose, NULL);
-    if (0 == bh_dl_monitor_init()) inited_ok = true;
-    initing = false;
+    if (0 == bh_dl_monitor_init()) {
+      ok = true;
+      __atomic_store_n(&inited_ok, true, __ATOMIC_RELAXED);
+    }
+    __atomic_store_n(&initing, false, __ATOMIC_RELAXED);
+    __atomic_store_n(&inited, true, __ATOMIC_RELEASE);
+  } else {
+    ok = __atomic_load_n(&inited_ok, __ATOMIC_RELAXED);
   }
   pthread_mutex_unlock(&lock);
-  return inited_ok ? 0 : -1;
+  return ok ? 0 : -1;
 }
 #endif
 

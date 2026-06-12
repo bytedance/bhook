@@ -187,6 +187,7 @@ void bh_elf_manager_refresh(bool sync_clean, bh_elf_manager_post_add_cb_t cb, vo
     bh_elf_t *new_elf;
     TAILQ_FOREACH(new_elf, &new_elfs, link_list_new) {
       cb(new_elf, cb_arg);
+      bh_elf_decrement_ref_count(new_elf);
     }
   }
 }
@@ -194,7 +195,8 @@ void bh_elf_manager_refresh(bool sync_clean, bh_elf_manager_post_add_cb_t cb, vo
 static bh_elf_t *bh_elf_manager_iterate_next(bh_elf_t *elf) {
   pthread_rwlock_rdlock(&bh_elfs_lock);
   elf = __predict_false(NULL == elf) ? TAILQ_FIRST(&bh_elfs) : TAILQ_NEXT(elf, link_list);
-  while (NULL != elf && (elf->abandoned_ts > 0 || elf->error)) elf = TAILQ_NEXT(elf, link_list);
+  while (NULL != elf && (elf->abandoned_ts > 0 || elf->error))
+    elf = TAILQ_NEXT(elf, link_list);
   if (__predict_true(NULL != elf)) bh_elf_increment_ref_count(elf);
   pthread_rwlock_unlock(&bh_elfs_lock);
   return elf;

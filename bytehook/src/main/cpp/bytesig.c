@@ -253,9 +253,10 @@ void bytesig_protect(pid_t tid, sigjmp_buf *jbuf, const int signums[], size_t si
     size_t j = 0;
     while (1) {
       pid_t expected = 0;
-      if (__atomic_compare_exchange_n(&sig->tids[j], &expected, tid, false, __ATOMIC_RELEASE,
+      if (__atomic_compare_exchange_n(&sig->tids[j], &expected, -1, false, __ATOMIC_ACQUIRE,
                                       __ATOMIC_RELAXED)) {
         __atomic_store_n(&sig->jbufs[j], jbuf, __ATOMIC_RELAXED);
+        __atomic_store_n(&sig->tids[j], tid, __ATOMIC_RELEASE);
         BYTESIG_LOG("protect_start signal %d at %zu", signum, j);
         break;  // finished
       }

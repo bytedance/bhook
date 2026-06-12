@@ -127,9 +127,9 @@
 
 #define FUNC_CHOOSER(_f1, _f2, _f3, ...)     _f3
 #define FUNC_RECOMPOSER(argsWithParentheses) FUNC_CHOOSER argsWithParentheses
-#define CHOOSE_FROM_ARG_COUNT(...)           FUNC_RECOMPOSER((__VA_ARGS__, BYTESIG_CATCH_2, BYTESIG_CATCH_1, ))
-#define NO_ARG_EXPANDER()                    , , BYTESIG_CATCH_0
-#define MACRO_CHOOSER(...)                   CHOOSE_FROM_ARG_COUNT(NO_ARG_EXPANDER __VA_ARGS__())
+#define CHOOSE_FROM_ARG_COUNT(...) FUNC_RECOMPOSER((__VA_ARGS__, BYTESIG_CATCH_2, BYTESIG_CATCH_1, ))
+#define NO_ARG_EXPANDER()          , , BYTESIG_CATCH_0
+#define MACRO_CHOOSER(...)         CHOOSE_FROM_ARG_COUNT(NO_ARG_EXPANDER __VA_ARGS__())
 
 #define BYTESIG_CATCH(...) MACRO_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
 
@@ -138,7 +138,8 @@
   if (1 == _bytesig_protected_)                                                             \
     bytesig_unprotect(_bytesig_tid_, _bytesig_sigs_, sizeof(_bytesig_sigs_) / sizeof(int)); \
   }                                                                                         \
-  while (0);
+  while (0)                                                                                 \
+    ;
 
 #ifdef __cplusplus
 extern "C" {

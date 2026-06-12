@@ -239,6 +239,7 @@ void *bh_dl_dsym(void *handle, const char *symbol) {
   for (size_t i = 0; i < self->symtab_cnt; i++) {
     ElfW(Sym) *sym = self->symtab + i;
     if (!BH_DL_SYMTAB_IS_EXPORT_SYM(sym->st_shndx)) continue;
+    if (__predict_false(sym->st_name >= self->strtab_sz)) continue;
     if (0 != strncmp(self->strtab + sym->st_name, symbol, self->strtab_sz - sym->st_name)) continue;
     return (void *)(self->load_bias + sym->st_value);
   }

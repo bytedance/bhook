@@ -355,18 +355,20 @@ static void bh_recorder_output(char **str, int fd, uint32_t item_flags) {
           bh_util_snprintf(line + line_sz, sizeof(line) - line_sz, "%" PRIu8 ",", header->error_number);
     if (item_flags & BYTEHOOK_RECORD_ITEM_STUB)
       line_sz += bh_util_snprintf(line + line_sz, sizeof(line) - line_sz, "%" PRIxPTR ",", header->stub);
-    line[line_sz - 1] = '\n';
 
-    if (NULL != str) {
-      // append to string
-      if (0 != bh_recorder_buf_append(&output, BH_RECORDER_OUTPUT_BUF_EXPAND_STEP, BH_RECORDER_OUTPUT_BUF_MAX,
-                                      line, line_sz, NULL, 0)) {
-        bh_recorder_buf_free(&output);
-        break;  // failed
+    if (line_sz > 0) {
+      line[line_sz - 1] = '\n';
+      if (NULL != str) {
+        // append to string
+        if (0 != bh_recorder_buf_append(&output, BH_RECORDER_OUTPUT_BUF_EXPAND_STEP,
+                                        BH_RECORDER_OUTPUT_BUF_MAX, line, line_sz, NULL, 0)) {
+          bh_recorder_buf_free(&output);
+          break;  // failed
+        }
+      } else {
+        // write to FD
+        if (0 != bh_util_write(fd, line, line_sz)) break;  // failed
       }
-    } else {
-      // write to FD
-      if (0 != bh_util_write(fd, line, line_sz)) break;  // failed
     }
 
     i += (BH_RECORDER_OP_UNHOOK == header->op ? sizeof(bh_recorder_record_unhook_header_t)
@@ -389,18 +391,19 @@ static void bh_recorder_output(char **str, int fd, uint32_t item_flags) {
 
     if (0 == line_sz) line_sz = bh_util_snprintf(line + line_sz, sizeof(line) - line_sz, "error,");
 
-    line[line_sz - 1] = '\n';
-
-    if (NULL != str) {
-      // append to string
-      if (0 != bh_recorder_buf_append(&output, BH_RECORDER_OUTPUT_BUF_EXPAND_STEP, BH_RECORDER_OUTPUT_BUF_MAX,
-                                      line, line_sz, NULL, 0)) {
-        bh_recorder_buf_free(&output);
-        return;  // failed
+    if (line_sz > 0) {
+      line[line_sz - 1] = '\n';
+      if (NULL != str) {
+        // append to string
+        if (0 != bh_recorder_buf_append(&output, BH_RECORDER_OUTPUT_BUF_EXPAND_STEP,
+                                        BH_RECORDER_OUTPUT_BUF_MAX, line, line_sz, NULL, 0)) {
+          bh_recorder_buf_free(&output);
+          return;  // failed
+        }
+      } else {
+        // write to FD
+        if (0 != bh_util_write(fd, line, line_sz)) return;  // failed
       }
-    } else {
-      // write to FD
-      if (0 != bh_util_write(fd, line, line_sz)) return;  // failed
     }
   }
 

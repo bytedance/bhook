@@ -41,12 +41,12 @@
 #include "queue.h"
 
 #define BH_HUB_TRAMPO_PAGE_NAME "bytehook-plt-trampolines"
-#define BH_HUB_TRAMPO_DELAY_SEC 5
+#define BH_HUB_TRAMPO_DELAY_SEC 15
 #define BH_HUB_STACK_NAME       "bytehook-stack"
 #define BH_HUB_STACK_SIZE       4096  // 4K is enough
 #define BH_HUB_STACK_FRAME_MAX  16
 #define BH_HUB_THREAD_MAX       1024
-#define BH_HUB_DELAY_SEC        10
+#define BH_HUB_DELAY_SEC        15
 
 // proxy for each hook-task in the same target-address
 #pragma clang diagnostic push
@@ -96,17 +96,16 @@ static bh_trampo_mgr_t bh_hub_trampo_mgr;
 
 // global data for stack
 static pthread_key_t bh_hub_stack_tls_key;
-static bh_hub_stack_t *bh_hub_stack_cache;
-static uint8_t *bh_hub_stack_cache_used;
-static pthread_key_t bh_hub_stack_reserved_tls_key;
+static bh_hub_stack_t *bh_hub_stack_cache = NULL;
+static uint8_t *bh_hub_stack_cache_used = NULL;
 
 // hub trampoline template
 extern void *bh_hub_trampo_template_data __attribute__((visibility("hidden")));
 __attribute__((naked)) static void bh_hub_trampo_template(void) {
 #if defined(__arm__)
   __asm__(
-      // Save parameter registers, LR
-      "push  { r0 - r3, lr }     \n"
+      // Save parameter registers, LR. (keep SP mod 8 = 0)
+      "push  { r0 - r3, r4, lr } \n"
 
       // Call bh_hub_push_stack()
       "ldr   r0, hub_ptr         \n"
@@ -117,8 +116,8 @@ __attribute__((naked)) static void bh_hub_trampo_template(void) {
       // Save the hook function's address to IP register
       "mov   ip, r0              \n"
 
-      // Restore parameter registers, LR
-      "pop   { r0 - r3, lr }     \n"
+      // Restore parameter registers, LR. (keep SP mod 8 = 0)
+      "pop   { r0 - r3, r4, lr } \n"
 
       // Call hook function
       "bx    ip                  \n"
@@ -320,7 +319,6 @@ static void bh_hub_stack_destroy(void *buf) {
     // munmap stack
     bh_safe_munmap(buf, BH_HUB_STACK_SIZE);
   }
-  bh_safe_pthread_setspecific(bh_hub_stack_reserved_tls_key, (const void *)1);
 }
 
 int bh_hub_init(void) {
@@ -329,13 +327,17 @@ int bh_hub_init(void) {
 
   // init TLS key
   if (__predict_false(0 != pthread_key_create(&bh_hub_stack_tls_key, bh_hub_stack_destroy))) return -1;
-  if (__predict_false(0 != pthread_key_create(&bh_hub_stack_reserved_tls_key, NULL))) return -1;
 
   // init hub's stack cache
-  if (__predict_false(NULL == (bh_hub_stack_cache = malloc(BH_HUB_THREAD_MAX * sizeof(bh_hub_stack_t)))))
+  if (__predict_false(NULL == (bh_hub_stack_cache = malloc(BH_HUB_THREAD_MAX * sizeof(bh_hub_stack_t))))) {
+    pthread_key_delete(bh_hub_stack_tls_key);
     return -1;
-  if (__predict_false(NULL == (bh_hub_stack_cache_used = calloc(BH_HUB_THREAD_MAX, sizeof(uint8_t)))))
+  }
+  if (__predict_false(NULL == (bh_hub_stack_cache_used = calloc(BH_HUB_THREAD_MAX, sizeof(uint8_t))))) {
+    pthread_key_delete(bh_hub_stack_tls_key);
+    free(bh_hub_stack_cache);
     return -1;
+  }
 
   // init hub's trampoline manager
   size_t code_size = (uintptr_t)(&bh_hub_trampo_template_data) - (uintptr_t)(bh_hub_trampo_template_start());
@@ -347,9 +349,6 @@ int bh_hub_init(void) {
 }
 
 static void *bh_hub_push_stack(bh_hub_t *self, void *return_address) {
-  bh_hub_stack_t *reserved_stack =
-      (bh_hub_stack_t *)bh_safe_pthread_getspecific(bh_hub_stack_reserved_tls_key);
-  if (reserved_stack != NULL) goto end;
   bh_hub_stack_t *stack = (bh_hub_stack_t *)bh_safe_pthread_getspecific(bh_hub_stack_tls_key);
 
   // create stack, only once
@@ -374,7 +373,7 @@ static void *bh_hub_push_stack(bh_hub_t *self, void *return_address) {
   if (!recursive) {
     bh_hub_proxy_t *proxy;
     SLIST_FOREACH(proxy, &self->proxies, link) {
-      if (proxy->enabled) {
+      if (__atomic_load_n(&proxy->enabled, __ATOMIC_ACQUIRE)) {
         // push a new frame for the current proxy
         if (stack->frames_cnt >= BH_HUB_STACK_FRAME_MAX) goto end;
         stack->frames_cnt++;
@@ -589,7 +588,7 @@ void *bh_hub_get_prev_func(void *func) {
     if (!found) {
       if (proxy->func == func) found = true;
     } else {
-      if (proxy->enabled) break;
+      if (__atomic_load_n(&proxy->enabled, __ATOMIC_ACQUIRE)) break;
     }
   }
   if (NULL != proxy) {

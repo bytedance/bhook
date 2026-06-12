@@ -130,16 +130,22 @@ end:
 }
 
 int bh_util_get_api_level(void) {
-  static int api_level_cached = -1;
+  static int api_level = -1;
+  static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
-  int api_level = __atomic_load_n(&api_level_cached, __ATOMIC_ACQUIRE);
-  if (__predict_true(api_level > 0)) return api_level;
-
-  api_level = android_get_device_api_level();
-  if (__predict_false(api_level < 0)) api_level = bh_util_get_api_level_from_build_prop();
-  if (__predict_false(api_level < __ANDROID_API_J__)) api_level = __ANDROID_API_J__;
-  __atomic_store_n(&api_level_cached, api_level, __ATOMIC_RELEASE);
-  return api_level;
+  int val = __atomic_load_n(&api_level, __ATOMIC_ACQUIRE);
+  if (val < 0) {
+    pthread_mutex_lock(&lock);
+    val = __atomic_load_n(&api_level, __ATOMIC_RELAXED);
+    if (val < 0) {
+      val = android_get_device_api_level();
+      if (val < 0) val = bh_util_get_api_level_from_build_prop();
+      if (val < __ANDROID_API_J__) val = __ANDROID_API_J__;
+      __atomic_store_n(&api_level, val, __ATOMIC_RELEASE);
+    }
+    pthread_mutex_unlock(&lock);
+  }
+  return val;
 }
 
 int bh_util_write(int fd, const char *buf, size_t buf_len) {
@@ -228,7 +234,8 @@ struct tm *bh_util_localtime_r(const time_t *timep, long gmtoff, struct tm *resu
   }
   result->tm_yday = (int)days;
   ip = bh_util_mon_yday[BH_UTIL_ISLEAP(y)];
-  for (y = 11; days < (long int)ip[y]; --y) continue;
+  for (y = 11; days < (long int)ip[y]; --y)
+    continue;
   days -= ip[y];
   result->tm_mon = (int)y;
   result->tm_mday = (int)(days + 1);

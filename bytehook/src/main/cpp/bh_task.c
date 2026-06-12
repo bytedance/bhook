@@ -39,10 +39,18 @@
 static bh_task_t *bh_task_create(const char *callee_path_name, const char *sym_name, void *new_func,
                                  bytehook_hooked_t hooked, void *hooked_arg, bool is_invisible) {
   bh_task_t *self;
-  if (NULL == (self = malloc(sizeof(bh_task_t)))) return NULL;
-  self->callee_path_name = (NULL != callee_path_name ? strdup(callee_path_name) : NULL);
-  self->callee_addr = NULL;
-  self->sym_name = strdup(sym_name);
+  if (NULL == (self = calloc(1, sizeof(bh_task_t)))) return NULL;
+  if (NULL != callee_path_name) {
+    if (NULL == (self->callee_path_name = strdup(callee_path_name))) {
+      free(self);
+      return NULL;
+    }
+  }
+  if (NULL == (self->sym_name = strdup(sym_name))) {
+    if (NULL != self->callee_path_name) free(self->callee_path_name);
+    free(self);
+    return NULL;
+  }
   self->new_func = new_func;
   self->hooked = hooked;
   self->hooked_arg = hooked_arg;
@@ -60,7 +68,10 @@ bh_task_t *bh_task_create_single(const char *caller_path_name, const char *calle
     return NULL;
   self->type = BH_TASK_TYPE_SINGLE;
   self->status = BH_TASK_STATUS_UNFINISHED;
-  self->caller_path_name = strdup(caller_path_name);
+  if (NULL == (self->caller_path_name = strdup(caller_path_name))) {
+    bh_task_destroy(&self);
+    return NULL;
+  }
   return self;
 }
 

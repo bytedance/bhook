@@ -82,7 +82,12 @@ static int bh_switch_create(bh_switch_t **self, ElfW(Sym) *sym, uintptr_t *hub_t
 }
 
 static void bh_switch_destroy(bh_switch_t *self, bool hub_with_delay) {
-  if (NULL != self->hub) bh_hub_destroy(self->hub, hub_with_delay);
+  // We encountered some crashes related to hub release,
+  // so we will temporarily suspend the release.
+  //
+  // if (NULL != self->hub) bh_hub_destroy(self->hub, hub_with_delay);
+  (void)hub_with_delay;
+
   free(self);
 }
 

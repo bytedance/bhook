@@ -28,20 +28,18 @@
 
 int bh_array_push(bh_array_t *self, uintptr_t value) {
   if (__predict_false(self->count >= self->cap)) {
-    self->cap *= 2;
+    size_t new_cap = self->cap * 2;
     uintptr_t *heap = NULL;
     if (self->data == self->stack) {
-      heap = malloc(sizeof(uintptr_t) * self->cap);
+      heap = malloc(sizeof(uintptr_t) * new_cap);
       if (NULL == heap) return -1;
       memcpy(heap, self->stack, sizeof(self->stack));
     } else {
-      heap = realloc(self->data, sizeof(uintptr_t) * self->cap);
-      if (NULL == heap) {
-        free(self->data);
-        return -1;
-      }
+      heap = realloc(self->data, sizeof(uintptr_t) * new_cap);
+      if (NULL == heap) return -1;
     }
     self->data = heap;
+    self->cap = new_cap;
   }
 
   self->data[self->count] = value;
