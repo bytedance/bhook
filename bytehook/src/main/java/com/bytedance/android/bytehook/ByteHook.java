@@ -365,7 +365,7 @@ public class ByteHook {
         }
     }
 
-    private static final int recordItemAll = 0b11111111;
+    private static final int recordItemAll = -1;  // 0xFFFFFFFF
     private static final int recordItemTimestamp = 1;
     private static final int recordItemCallerLibName = 1 << 1;
     private static final int recordItemOp = 1 << 2;

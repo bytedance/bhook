@@ -126,7 +126,7 @@ bool bytehook_get_recordable(void);
 void bytehook_set_recordable(bool recordable);
 
 // get operation records
-#define BYTEHOOK_RECORD_ITEM_ALL             0xFF  // 0b11111111
+#define BYTEHOOK_RECORD_ITEM_ALL             0xFFFFFFFF
 #define BYTEHOOK_RECORD_ITEM_TIMESTAMP       (1 << 0)
 #define BYTEHOOK_RECORD_ITEM_CALLER_LIB_NAME (1 << 1)
 #define BYTEHOOK_RECORD_ITEM_OP              (1 << 2)
