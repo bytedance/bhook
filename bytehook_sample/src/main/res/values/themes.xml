@@ -48,10 +48,4 @@
     <style name="Theme.Button.Red" parent="Theme.Button">
         <item name="android:textColor">@color/red</item>
     </style>
-    <style name="Theme.RadioButton" parent="Widget.AppCompat.CompoundButton.RadioButton">
-        <item name="android:layout_width">wrap_content</item>
-        <item name="android:layout_height">wrap_content</item>
-        <item name="android:padding">18dp</item>
-        <item name="android:textSize">18sp</item>
-    </style>
 </resources>

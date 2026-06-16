@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024 ByteDance, Inc.
+// Copyright (c) 2020-2026 ByteDance, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -48,7 +48,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define BYTEHOOK_VERSION "1.1.2-rc.3"
+#define BYTEHOOK_VERSION "1.1.2"
 
 #define BYTEHOOK_STATUS_CODE_OK                  0
 #define BYTEHOOK_STATUS_CODE_UNINIT              1

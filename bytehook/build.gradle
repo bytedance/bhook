@@ -3,13 +3,12 @@ plugins {
 }
 
 android {
-    namespace 'com.bytedance.android.bytehook'
-    compileSdkVersion rootProject.ext.compileSdkVersion
-    buildToolsVersion rootProject.ext.buildToolsVersion
-    ndkVersion rootProject.ext.ndkVersion
+    namespace = 'com.bytedance.android.bytehook'
+    compileSdk = rootProject.ext.compileSdkVersion
+    buildToolsVersion = rootProject.ext.buildToolsVersion
+    ndkVersion = rootProject.ext.ndkVersion
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
         consumerProguardFiles "consumer-rules.pro"
         externalNativeBuild {
             cmake {
@@ -25,7 +24,7 @@ android {
     externalNativeBuild {
         cmake {
             path "src/main/cpp/CMakeLists.txt"
-            version rootProject.ext.cmakeVersion
+            version = rootProject.ext.cmakeVersion
         }
     }
     compileOptions {
@@ -45,13 +44,13 @@ android {
         exclude '**/libshadowhook_nothing.so'
     }
     buildFeatures {
-        prefabPublishing true
-        buildConfig false
-        prefab true
+        prefabPublishing = true
+        buildConfig = false
+        prefab = true
     }
     prefab {
         bytehook {
-            headers "src/main/cpp/include"
+            headers = "src/main/cpp/include"
         }
     }
     publishing {
@@ -59,6 +58,12 @@ android {
             withSourcesJar()
             withJavadocJar()
         }
+    }
+    lint {
+        targetSdk rootProject.ext.targetSdkVersion
+    }
+    testOptions {
+        targetSdk rootProject.ext.targetSdkVersion
     }
 }
 

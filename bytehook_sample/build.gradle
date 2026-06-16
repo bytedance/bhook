@@ -3,10 +3,10 @@ plugins {
 }
 
 android {
-    namespace 'com.bytedance.android.bytehook.sample'
-    compileSdkVersion rootProject.ext.compileSdkVersion
-    buildToolsVersion rootProject.ext.buildToolsVersion
-    ndkVersion rootProject.ext.ndkVersion
+    namespace = 'com.bytedance.android.bytehook.sample'
+    compileSdk = rootProject.ext.compileSdkVersion
+    buildToolsVersion = rootProject.ext.buildToolsVersion
+    ndkVersion = rootProject.ext.ndkVersion
     defaultConfig {
         applicationId "com.bytedance.android.bytehook.sample"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -14,6 +14,7 @@ android {
         versionCode 1
         versionName "1.0"
         ndk {
+            //noinspection ChromeOsAbiSupport
             abiFilters rootProject.ext.abiFilters.split(",")
         }
         externalNativeBuild {
@@ -28,12 +29,12 @@ android {
     externalNativeBuild {
         cmake {
             path "src/main/cpp/CMakeLists.txt"
-            version rootProject.ext.cmakeVersion
+            version = rootProject.ext.cmakeVersion
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility rootProject.ext.javaVersion
+        targetCompatibility rootProject.ext.javaVersion
     }
     buildTypes {
         debug {
@@ -52,13 +53,13 @@ android {
         }
     }
     buildFeatures {
-        prefab true
+        prefab = true
     }
 }
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.10.0'
+    implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
 
     if (rootProject.ext.dependencyOnLocalLibrary) {

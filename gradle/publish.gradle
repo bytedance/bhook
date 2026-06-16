@@ -28,9 +28,9 @@ project.afterEvaluate {
             release(MavenPublication) {
                 from components.release
 
-                groupId POM_GROUP_ID
-                artifactId POM_ARTIFACT_ID
-                version POM_VERSION_NAME
+                groupId = POM_GROUP_ID
+                artifactId = POM_ARTIFACT_ID
+                version = POM_VERSION_NAME
 
                 pom {
                     name = POM_NAME
@@ -66,13 +66,13 @@ project.afterEvaluate {
             maven {
                 name = "sonatype"
 
-                def releasesRepoUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
-                def snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots/"
+                def releasesRepoUrl = "https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/"
+                def snapshotsRepoUrl = "https://ossrh-staging-api.central.sonatype.com/content/repositories/snapshots/"
                 url = POM_VERSION_NAME.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
 
                 credentials {
-                    username ossrhUsername
-                    password ossrhPassword
+                    username = ossrhUsername
+                    password = ossrhPassword
                 }
             }
         }

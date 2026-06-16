@@ -1,22 +1,31 @@
 # ByteHook
 
 ![](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)
-![](https://img.shields.io/badge/release-1.1.1-red.svg?style=flat)
-![](https://img.shields.io/badge/Android-4.1%20--%2015-blue.svg?style=flat)
+![](https://img.shields.io/badge/release-1.1.2-red.svg?style=flat)
+![](https://img.shields.io/badge/Android-4.1%20--%2017-blue.svg?style=flat)
 ![](https://img.shields.io/badge/arch-armeabi--v7a%20%7C%20arm64--v8a%20%7C%20x86%20%7C%20x86__64-blue.svg?style=flat)
 
-[**简体中文**](README.zh-CN.md)
+[简体中文](README.zh-CN.md)
 
-**ByteHook** is an Android PLT hook library which supports armeabi-v7a, arm64-v8a, x86 and x86_64.
+**ByteHook is an Android PLT hook library.** Its goals are:
 
-ByteHook is now used in TikTok, Douyin, Toutiao, Xigua Video, Lark.
+- **Stability** - Can be stably used in production apps.
+- **Compatibility** - Always maintains backward compatibility of API and ABI in new versions.
+- **Performance** - Continuously reduces API call overhead and additional runtime overhead introduced by hooks.
 
-If you need an Android inline hook library, please move to [ShadowHook](https://github.com/bytedance/android-inline-hook).
+> If you need an Android inline hook library, try [shadowhook](https://github.com/bytedance/android-inline-hook).
+
+
+## Android OS Compatibility
+
+**Android `4.1` - `17 QPR1 Beta 4`**
+
+> We will test and support the latest Android OS Beta versions as promptly as possible, and list the supported Android OS versions here.
 
 
 ## Features
 
-* Support Android 4.1 - 15 (API level 16 - 35).
+* Support Android 4.1 - 17 (API level 16 - 37).
 * Support armeabi-v7a, arm64-v8a, x86 and x86_64.
 * Multiple hooks and unhooks for the same function do not conflict with each other.
 * Hook a single, partial or all of the dynamic libraries in the process.
@@ -47,9 +56,11 @@ android {
 }
 
 dependencies {
-    implementation 'com.bytedance:bytehook:1.1.1'
+    implementation 'com.bytedance:bytehook:x.y.z'
 }
 ```
+
+Replace `x.y.z` with the version number. It's recommended to use the latest [release](https://github.com/bytedance/bhook/releases) version.
 
 **Note**: ByteHook uses the [prefab package schema v2](https://github.com/google/prefab/releases/tag/v2.0.0), which is configured by default since [Android Gradle Plugin 7.1.0](https://developer.android.com/studio/releases/gradle-plugin?buildsystem=cmake#7-1-0). If you are using Android Gradle Plugin earlier than 7.1.0, please add the following configuration to `gradle.properties`:
 
@@ -183,13 +194,13 @@ Notice:
 
 ## License
 
-ByteHook is licensed by [MIT License](LICENSE).
+ByteHook is licensed under the [MIT License](LICENSE).
 
 ByteHook uses the following third-party source code or libraries:
 
 * [queue.h](bytehook/src/main/cpp/third_party/bsd/queue.h)  
-  BSD 3-Clause License  
-  Copyright (c) 1991, 1993 The Regents of the University of California.
+BSD 3-Clause License  
+Copyright (c) 1991, 1993 The Regents of the University of California.
 * [linux-syscall-support](https://chromium.googlesource.com/linux-syscall-support/)  
-  BSD 3-Clause License  
-  Copyright (c) 2005-2011 Google Inc.
+BSD 3-Clause License  
+Copyright (c) 2005-2011 Google Inc.

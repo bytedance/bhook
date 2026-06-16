@@ -1,22 +1,31 @@
 # ByteHook
 
 ![](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)
-![](https://img.shields.io/badge/release-1.1.1-red.svg?style=flat)
-![](https://img.shields.io/badge/Android-4.1%20--%2015-blue.svg?style=flat)
+![](https://img.shields.io/badge/release-1.1.2-red.svg?style=flat)
+![](https://img.shields.io/badge/Android-4.1%20--%2017-blue.svg?style=flat)
 ![](https://img.shields.io/badge/arch-armeabi--v7a%20%7C%20arm64--v8a%20%7C%20x86%20%7C%20x86__64-blue.svg?style=flat)
 
-[**English**](README.md)
+[English](README.md)
 
-**ByteHook** 是一个 Android PLT hook 库，它支持 armeabi-v7a, arm64-v8a, x86 和 x86_64。
+**ByteHook 是一个 Android PLT hook 库。** 它的目标是：
 
-ByteHook 现在被用于 TikTok，抖音，今日头条，西瓜视频，飞书中。
+- **稳定** - 可以稳定的用于 production app 中。
+- **兼容** - 始终保持新版本 API 和 ABI 向后兼容。
+- **性能** - 持续降低 API 调用耗时和 hook 后引入的额外运行时耗时。
 
-如果你需要的是 Android inline hook 库，请移步到 [ShadowHook](https://github.com/bytedance/android-inline-hook)。
+> 如果你需要的是 Android inline hook 库，建议试试 [shadowhook](https://github.com/bytedance/android-inline-hook)。
+
+
+## Android OS 兼容性
+
+**Android `4.1` - `17 QPR1 Beta 4`**
+
+> 我们会尽可能及时的测试和支持最新的 Android OS Beta 版本，并且在这里说明已经支持的 Android OS 版本范围。
 
 
 ## 特征
 
-* 支持 Android 4.1 - 15 (API level 16 - 35)。
+* 支持 Android 4.1 - 17 (API level 16 - 37)。
 * 支持 armeabi-v7a, arm64-v8a, x86 和 x86_64。
 * 对同一个函数的多个 hook 和 unhook 互相不冲突。
 * 可以 hook 进程中单个、部分或全部的动态库。
@@ -47,9 +56,11 @@ android {
 }
 
 dependencies {
-    implementation 'com.bytedance:bytehook:1.1.1'
+    implementation 'com.bytedance:bytehook:x.y.z'
 }
 ```
+
+`x.y.z` 请替换成版本号，建议使用最新的 [release](https://github.com/bytedance/bhook/releases) 版本。
 
 **注意**：ByteHook 使用 [prefab package schema v2](https://github.com/google/prefab/releases/tag/v2.0.0)，它是从 [Android Gradle Plugin 7.1.0](https://developer.android.com/studio/releases/gradle-plugin?buildsystem=cmake#7-1-0) 开始作为默认配置的。如果你使用的是 Android Gradle Plugin 7.1.0 之前的版本，请在 `gradle.properties` 中加入以下配置：
 
@@ -188,8 +199,8 @@ ByteHook 使用 [MIT 许可证](LICENSE) 授权。
 ByteHook 使用了以下第三方源码或库：
 
 * [queue.h](bytehook/src/main/cpp/third_party/bsd/queue.h)  
-  BSD 3-Clause License  
-  Copyright (c) 1991, 1993 The Regents of the University of California.
+BSD 3-Clause License  
+Copyright (c) 1991, 1993 The Regents of the University of California.
 * [linux-syscall-support](https://chromium.googlesource.com/linux-syscall-support/)  
-  BSD 3-Clause License  
-  Copyright (c) 2005-2011 Google Inc.
+BSD 3-Clause License  
+Copyright (c) 2005-2011 Google Inc.

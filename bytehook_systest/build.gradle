@@ -3,16 +3,13 @@ plugins {
 }
 
 android {
-    compileSdkVersion rootProject.ext.compileSdkVersion
-    buildToolsVersion rootProject.ext.buildToolsVersion
-    ndkVersion rootProject.ext.ndkVersion
+    namespace = 'com.bytedance.android.bytehooksystest'
+    compileSdk = rootProject.ext.compileSdkVersion
+    buildToolsVersion = rootProject.ext.buildToolsVersion
+    ndkVersion = rootProject.ext.ndkVersion
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
         consumerProguardFiles 'consumer-rules.pro'
-        ndk {
-            abiFilters rootProject.ext.abiFilters.split(",")
-        }
         externalNativeBuild {
             cmake {
                 abiFilters rootProject.ext.abiFilters.split(",")
@@ -25,12 +22,12 @@ android {
     externalNativeBuild {
         cmake {
             path "src/main/cpp/CMakeLists.txt"
-            version rootProject.ext.cmakeVersion
+            version = rootProject.ext.cmakeVersion
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility rootProject.ext.javaVersion
+        targetCompatibility rootProject.ext.javaVersion
     }
     buildTypes {
         debug {
@@ -49,9 +46,15 @@ android {
         }
     }
     buildFeatures {
-        prefab true
+        prefab = true
+        buildConfig = false
     }
-    namespace 'com.bytedance.android.bytehooksystest'
+    lint {
+        targetSdk rootProject.ext.targetSdkVersion
+    }
+    testOptions {
+        targetSdk rootProject.ext.targetSdkVersion
+    }
 }
 
 dependencies {
