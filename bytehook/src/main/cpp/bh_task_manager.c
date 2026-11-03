@@ -38,7 +38,7 @@
 #include "bh_task.h"
 #include "bh_util.h"
 #include "queue.h"
-#if defined(__arm__) || defined(__aarch64__)
+#if BH_LINKER_MAYBE_SUPPORT_DL_INIT_FINI_MONITOR
 #include "shadowhook.h"
 #endif
 

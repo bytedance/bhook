@@ -52,14 +52,14 @@ bool bh_linker_is_use_basename(void);
 bool bh_linker_elf_is_match(const char *linker_elf_name, const char *external_elf_name);
 
 // used to check maybe-support for dl-init-fini-monitor at compile time
-#if defined(__aarch64__) || defined(__arm__)
+#if !defined(BH_NO_SHADOWHOOK) && (defined(__aarch64__) || defined(__arm__))
 #define BH_LINKER_MAYBE_SUPPORT_DL_INIT_FINI_MONITOR 1
 #else
 #define BH_LINKER_MAYBE_SUPPORT_DL_INIT_FINI_MONITOR 0
 #endif
 
 // used to check maybe-NOT-support for dl-init-fini-monitor at compile time
-#if defined(__aarch64__) || (defined(__arm__) && __ANDROID_API__ >= __ANDROID_API_L__)
+#if !defined(BH_NO_SHADOWHOOK) && (defined(__aarch64__) || (defined(__arm__) && __ANDROID_API__ >= __ANDROID_API_L__))
 #define BH_LINKER_MAYBE_NOT_SUPPORT_DL_INIT_FINI_MONITOR 0
 #else
 #define BH_LINKER_MAYBE_NOT_SUPPORT_DL_INIT_FINI_MONITOR 1

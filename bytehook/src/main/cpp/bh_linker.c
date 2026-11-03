@@ -199,7 +199,9 @@ bool bh_linker_elf_is_match(const char *linker_elf_name, const char *external_el
 }
 
 bool bh_linker_is_support_dl_init_fini_monitor(void) {
-#if defined(__aarch64__)
+#if defined(BH_NO_SHADOWHOOK)
+  return false;
+#elif defined(__aarch64__)
   return true;
 #elif defined(__arm__)
 #if __ANDROID_API__ >= __ANDROID_API_L__

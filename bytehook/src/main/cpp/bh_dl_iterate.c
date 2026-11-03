@@ -33,6 +33,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <string.h>
 
 #include "bh_const.h"
@@ -78,7 +79,7 @@ static int bh_dl_find_from_auxv(unsigned long type, const char *pathname, struct
   if (0 == val) return -1;
 
   // get base
-  uintptr_t base = (AT_PHDR == type ? (val & (~0xffful)) : val);
+  uintptr_t base = (AT_PHDR == type ? (BH_UTIL_ALIGN_START(val, bh_util_get_page_size())) : val);
   if (0 != memcmp((void *)base, ELFMAG, SELFMAG)) return -1;
 
   // get ELF info
